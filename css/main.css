@@ -1,53 +1,50 @@
 /* ============================================
-   MORFY - Sistema de Diseño Moderno v2.0
+   MORFY - Tema Dracula Inspired 🧛‍♂️
    Aplicación para Diseño de Férulas 3D
    ============================================ */
 
 /* ============================================
-   1. VARIABLES CSS - Sistema de Diseño
+   VARIABLES CSS - DRACULA THEME
    ============================================ */
 :root {
-    /* Paleta de Colores Principal */
-    --color-primary: #00d4ff;
-    --color-primary-dark: #0099cc;
-    --color-primary-light: #33ddff;
-    --color-primary-glow: rgba(0, 212, 255, 0.4);
+    /* Dracula Color Palette */
+    --bg-darker: #1a1a2e;
+    --bg-dark: #21222c;
+    --bg-medium: #282a36;
+    --bg-light: #343746;
+    --bg-lighter: #44475a;
 
-    /* Colores de Acento */
-    --color-accent-red: #ff4757;
-    --color-accent-orange: #ffa502;
-    --color-accent-green: #26de81;
-    --color-accent-purple: #a55eea;
-    --color-accent-yellow: #fed330;
+    --fg: #f8f8f2;
+    --comment: #6272a4;
 
-    /* Escala de Grises */
-    --color-dark-900: #0a0a0a;
-    --color-dark-800: #141414;
-    --color-dark-700: #1a1a1a;
-    --color-dark-600: #242424;
-    --color-dark-500: #2d2d2d;
-    --color-dark-400: #3d3d3d;
-    --color-dark-300: #525252;
-    --color-light-100: #f5f5f5;
-    --color-light-200: #e0e0e0;
-    --color-light-300: #cccccc;
+    --cyan: #8be9fd;
+    --green: #50fa7b;
+    --orange: #ffb86c;
+    --pink: #ff79c6;
+    --purple: #bd93f9;
+    --red: #ff5555;
+    --yellow: #f1fa8c;
 
-    /* Gradientes */
-    --gradient-primary: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
-    --gradient-primary-hover: linear-gradient(135deg, #33ddff 0%, #00b3e6 100%);
-    --gradient-danger: linear-gradient(135deg, #ff4757 0%, #d63447 100%);
-    --gradient-success: linear-gradient(135deg, #26de81 0%, #20bf6b 100%);
-    --gradient-glass: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.1) 0%,
-        rgba(255, 255, 255, 0.05) 100%);
+    /* Glows */
+    --glow-cyan: rgba(139, 233, 253, 0.5);
+    --glow-pink: rgba(255, 121, 198, 0.5);
+    --glow-purple: rgba(189, 147, 249, 0.5);
+    --glow-green: rgba(80, 250, 123, 0.5);
+    --glow-orange: rgba(255, 184, 108, 0.5);
 
-    /* Sombras */
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.2);
-    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
-    --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.4);
-    --shadow-glow: 0 0 20px var(--color-primary-glow);
-    --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    /* Gradientes Vibrantes */
+    --gradient-cyber: linear-gradient(135deg, var(--pink) 0%, var(--purple) 50%, var(--cyan) 100%);
+    --gradient-pink-purple: linear-gradient(135deg, var(--pink) 0%, var(--purple) 100%);
+    --gradient-cyan-green: linear-gradient(135deg, var(--cyan) 0%, var(--green) 100%);
+    --gradient-orange-red: linear-gradient(135deg, var(--orange) 0%, var(--red) 100%);
+    --gradient-purple-pink: linear-gradient(135deg, var(--purple) 0%, var(--pink) 100%);
+
+    /* Sombras Intensas */
+    --shadow-cyber: 0 0 30px var(--glow-pink), 0 0 60px var(--glow-purple);
+    --shadow-cyan: 0 0 30px var(--glow-cyan);
+    --shadow-pink: 0 0 30px var(--glow-pink);
+    --shadow-purple: 0 0 30px var(--glow-purple);
+    --shadow-green: 0 0 30px var(--glow-green);
 
     /* Espaciado */
     --spacing-xs: 0.25rem;
@@ -55,40 +52,20 @@
     --spacing-md: 1rem;
     --spacing-lg: 1.5rem;
     --spacing-xl: 2rem;
-    --spacing-2xl: 3rem;
 
     /* Border Radius */
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
-    --radius-full: 9999px;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
 
     /* Transiciones */
-    --transition-fast: 0.15s ease;
-    --transition-base: 0.25s ease;
-    --transition-slow: 0.35s ease;
-    --transition-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-
-    /* Tipografía */
-    --font-primary: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-mono: 'Fira Code', 'Consolas', monospace;
-    --font-size-xs: 0.75rem;
-    --font-size-sm: 0.875rem;
-    --font-size-base: 1rem;
-    --font-size-lg: 1.125rem;
-    --font-size-xl: 1.25rem;
-    --font-size-2xl: 1.5rem;
-    --font-size-3xl: 2rem;
-
-    /* Efectos */
-    --blur-sm: 4px;
-    --blur-md: 8px;
-    --blur-lg: 16px;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ============================================
-   2. RESET Y CONFIGURACIÓN GLOBAL
+   RESET Y CONFIGURACIÓN GLOBAL
    ============================================ */
 *, *::before, *::after {
     margin: 0;
@@ -103,16 +80,16 @@ html {
 }
 
 body {
-    font-family: var(--font-primary);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
     height: 100vh;
     overflow: hidden;
-    background: var(--color-dark-800);
-    color: var(--color-light-100);
+    background: var(--bg-darker);
+    color: var(--fg);
     line-height: 1.6;
     position: relative;
 }
 
-/* Fondo con patrón de puntos para dar textura */
+/* Fondo con grid cyberpunk */
 body::before {
     content: '';
     position: fixed;
@@ -120,10 +97,39 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 0);
-    background-size: 40px 40px;
+    background-image:
+        linear-gradient(rgba(189, 147, 249, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(189, 147, 249, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
     pointer-events: none;
-    z-index: -1;
+    z-index: 0;
+    animation: grid-move 20s linear infinite;
+}
+
+@keyframes grid-move {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(50px, 50px); }
+}
+
+/* Efecto de resplandor en el fondo */
+body::after {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, var(--glow-purple) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 0;
+    animation: pulse-glow 8s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.25; transform: translate(-50%, -50%) scale(1.1); }
 }
 
 #app {
@@ -131,43 +137,45 @@ body::before {
     flex-direction: column;
     height: 100vh;
     position: relative;
+    z-index: 1;
 }
 
 /* ============================================
-   3. BARRA DE HERRAMIENTAS (TOOLBAR)
+   BARRA DE HERRAMIENTAS - CYBERPUNK STYLE
    ============================================ */
 #toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-md) var(--spacing-xl);
-    background: var(--color-dark-600);
-    backdrop-filter: blur(var(--blur-md));
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: var(--shadow-lg);
+    padding: var(--spacing-lg) var(--spacing-xl);
+    background: var(--bg-dark);
+    border-bottom: 2px solid var(--purple);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 40px var(--glow-purple);
     position: relative;
     z-index: 1000;
 }
 
-/* Logo/Título con efecto de resplandor */
+/* Título con efecto neón */
 #toolbar h1 {
-    font-size: var(--font-size-3xl);
-    font-weight: 800;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    font-size: 2.5rem;
+    font-weight: 900;
+    background: var(--gradient-cyber);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.1em;
     position: relative;
-    animation: glow-pulse 3s ease-in-out infinite;
+    text-transform: uppercase;
+    animation: neon-pulse 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 10px var(--glow-pink)) drop-shadow(0 0 20px var(--glow-purple));
 }
 
-@keyframes glow-pulse {
+@keyframes neon-pulse {
     0%, 100% {
-        filter: drop-shadow(0 0 8px var(--color-primary-glow));
+        filter: drop-shadow(0 0 10px var(--glow-pink)) drop-shadow(0 0 20px var(--glow-purple));
     }
     50% {
-        filter: drop-shadow(0 0 16px var(--color-primary-glow));
+        filter: drop-shadow(0 0 20px var(--glow-pink)) drop-shadow(0 0 40px var(--glow-purple)) drop-shadow(0 0 60px var(--glow-cyan));
     }
 }
 
@@ -179,24 +187,25 @@ body::before {
     align-items: center;
 }
 
-/* Botones modernos con glassmorphism */
+/* Botones estilo cyberpunk con neón */
 #toolbar button {
     position: relative;
-    padding: 0.7rem 1.4rem;
-    background: var(--gradient-primary);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
+    padding: 0.8rem 1.6rem;
+    background: var(--bg-medium);
+    color: var(--cyan);
+    border: 2px solid var(--cyan);
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    transition: all var(--transition-base);
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: all var(--transition);
+    box-shadow: 0 0 10px var(--glow-cyan), inset 0 0 10px rgba(139, 233, 253, 0.1);
+    font-family: 'JetBrains Mono', monospace;
 }
 
-/* Efecto de brillo al hover */
+/* Efecto de escaneo */
 #toolbar button::before {
     content: '';
     position: absolute;
@@ -204,7 +213,7 @@ body::before {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(139, 233, 253, 0.4), transparent);
     transition: left 0.5s ease;
 }
 
@@ -213,26 +222,29 @@ body::before {
 }
 
 #toolbar button:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: var(--shadow-lg), var(--shadow-glow);
-    background: var(--gradient-primary-hover);
+    background: var(--cyan);
+    color: var(--bg-darker);
+    border-color: var(--cyan);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 0 30px var(--glow-cyan), 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 #toolbar button:active {
-    transform: translateY(0) scale(0.98);
-    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px) scale(1.02);
 }
 
 #toolbar button.active {
-    background: var(--gradient-primary);
-    box-shadow: var(--shadow-inset), 0 0 16px var(--color-primary-glow);
-    transform: scale(0.95);
+    background: var(--cyan);
+    color: var(--bg-darker);
+    box-shadow: 0 0 40px var(--glow-cyan), inset 0 0 20px rgba(0, 0, 0, 0.3);
 }
 
 #toolbar button:disabled {
-    background: var(--color-dark-400);
+    background: var(--bg-light);
+    color: var(--comment);
+    border-color: var(--comment);
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: 0.4;
     transform: none;
     box-shadow: none;
 }
@@ -240,44 +252,97 @@ body::before {
 #toolbar button:disabled:hover {
     transform: none;
     box-shadow: none;
+    background: var(--bg-light);
+    color: var(--comment);
 }
 
-/* Botones de operación específicos con colores */
+/* Botones especiales con colores únicos */
+#cube-tool, #cylinder-tool, #sphere-tool {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 10px var(--glow-cyan);
+}
+
+#cube-tool:hover, #cylinder-tool:hover, #sphere-tool:hover {
+    background: var(--cyan);
+    color: var(--bg-darker);
+    box-shadow: 0 0 30px var(--glow-cyan);
+}
+
+#cone-tool, #torus-tool, #plane-tool {
+    border-color: var(--purple);
+    color: var(--purple);
+    box-shadow: 0 0 10px var(--glow-purple);
+}
+
+#cone-tool:hover, #torus-tool:hover, #plane-tool:hover {
+    background: var(--purple);
+    color: var(--bg-darker);
+    box-shadow: 0 0 30px var(--glow-purple);
+}
+
 #union-tool {
-    background: var(--gradient-success);
+    border-color: var(--green);
+    color: var(--green);
+    box-shadow: 0 0 10px var(--glow-green);
 }
 
 #union-tool:hover {
-    box-shadow: var(--shadow-lg), 0 0 20px rgba(38, 222, 129, 0.4);
+    background: var(--green);
+    color: var(--bg-darker);
+    box-shadow: 0 0 30px var(--glow-green);
 }
 
 #difference-tool {
-    background: var(--gradient-danger);
+    border-color: var(--red);
+    color: var(--red);
+    box-shadow: 0 0 10px rgba(255, 85, 85, 0.5);
 }
 
 #difference-tool:hover {
-    box-shadow: var(--shadow-lg), 0 0 20px rgba(255, 71, 87, 0.4);
+    background: var(--red);
+    color: var(--bg-darker);
+    box-shadow: 0 0 30px rgba(255, 85, 85, 0.5);
 }
 
 #intersection-tool {
-    background: linear-gradient(135deg, var(--color-accent-purple) 0%, #845ec2 100%);
+    border-color: var(--pink);
+    color: var(--pink);
+    box-shadow: 0 0 10px var(--glow-pink);
 }
 
 #intersection-tool:hover {
-    box-shadow: var(--shadow-lg), 0 0 20px rgba(165, 94, 234, 0.4);
+    background: var(--pink);
+    color: var(--bg-darker);
+    box-shadow: 0 0 30px var(--glow-pink);
 }
 
-/* Botón de exportar con acento naranja */
 #export-stl {
-    background: linear-gradient(135deg, var(--color-accent-orange) 0%, #e67e22 100%);
+    border-color: var(--orange);
+    color: var(--orange);
+    box-shadow: 0 0 10px var(--glow-orange);
 }
 
 #export-stl:hover {
-    box-shadow: var(--shadow-lg), 0 0 20px rgba(255, 165, 2, 0.4);
+    background: var(--orange);
+    color: var(--bg-darker);
+    box-shadow: 0 0 30px var(--glow-orange);
+}
+
+#clear-selection-tool {
+    border-color: var(--yellow);
+    color: var(--yellow);
+    box-shadow: 0 0 10px rgba(241, 250, 140, 0.5);
+}
+
+#clear-selection-tool:hover {
+    background: var(--yellow);
+    color: var(--bg-darker);
+    box-shadow: 0 0 30px rgba(241, 250, 140, 0.5);
 }
 
 /* ============================================
-   4. LAYOUT PRINCIPAL
+   LAYOUT PRINCIPAL
    ============================================ */
 main {
     display: flex;
@@ -288,41 +353,51 @@ main {
 }
 
 /* ============================================
-   5. PANELES LATERALES CON GLASSMORPHISM
+   PANELES LATERALES - CYBERPUNK GLASS
    ============================================ */
 aside {
-    width: 300px;
-    background: rgba(45, 45, 45, 0.6);
-    backdrop-filter: blur(var(--blur-lg));
+    width: 320px;
+    background: rgba(40, 42, 54, 0.8);
+    backdrop-filter: blur(20px) saturate(180%);
     padding: var(--spacing-lg);
     overflow-y: auto;
-    transition: all var(--transition-base);
-    box-shadow: var(--shadow-xl);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all var(--transition);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.5),
+        inset 0 0 0 1px rgba(189, 147, 249, 0.2),
+        0 0 40px var(--glow-purple);
+    border: 1px solid rgba(189, 147, 249, 0.3);
     border-radius: var(--radius-lg);
 }
 
 aside:hover {
-    background: rgba(45, 45, 45, 0.7);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(40, 42, 54, 0.9);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.6),
+        inset 0 0 0 1px rgba(189, 147, 249, 0.4),
+        0 0 60px var(--glow-purple);
+    border-color: rgba(189, 147, 249, 0.5);
 }
 
 #parameter-panel {
-    background: rgba(37, 37, 38, 0.6);
+    border-left: 3px solid var(--cyan);
 }
 
 #operations-panel {
-    background: rgba(42, 42, 43, 0.6);
+    border-right: 3px solid var(--pink);
 }
 
-/* Títulos de sección con línea decorativa */
+/* Títulos con efecto neón */
 aside h3 {
     margin-bottom: var(--spacing-lg);
-    color: var(--color-primary);
-    font-size: var(--font-size-xl);
-    font-weight: 700;
+    color: var(--purple);
+    font-size: 1.4rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
     position: relative;
     padding-bottom: var(--spacing-md);
+    text-shadow: 0 0 10px var(--glow-purple), 0 0 20px var(--glow-purple);
 }
 
 aside h3::after {
@@ -330,15 +405,20 @@ aside h3::after {
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 60px;
-    height: 3px;
-    background: var(--gradient-primary);
-    border-radius: var(--radius-full);
-    box-shadow: var(--shadow-glow);
+    width: 100%;
+    height: 2px;
+    background: var(--gradient-purple-pink);
+    box-shadow: 0 0 10px var(--glow-purple);
+    animation: line-glow 2s ease-in-out infinite;
+}
+
+@keyframes line-glow {
+    0%, 100% { box-shadow: 0 0 10px var(--glow-purple); }
+    50% { box-shadow: 0 0 20px var(--glow-pink); }
 }
 
 /* ============================================
-   6. PANEL DE PARÁMETROS
+   PANEL DE PARÁMETROS
    ============================================ */
 #current-params {
     display: flex;
@@ -350,51 +430,71 @@ aside h3::after {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
+    animation: slideIn 0.4s ease backwards;
 }
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.param-input:nth-child(1) { animation-delay: 0.05s; }
+.param-input:nth-child(2) { animation-delay: 0.1s; }
+.param-input:nth-child(3) { animation-delay: 0.15s; }
+.param-input:nth-child(4) { animation-delay: 0.2s; }
+.param-input:nth-child(5) { animation-delay: 0.25s; }
+.param-input:nth-child(6) { animation-delay: 0.3s; }
 
 .param-input label {
-    font-size: var(--font-size-sm);
-    color: var(--color-light-200);
-    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--cyan);
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 5px var(--glow-cyan);
 }
 
-/* Inputs con efecto de profundidad */
+/* Inputs con estilo futurista */
 .param-input input {
-    padding: 0.9rem 1rem;
-    background: var(--color-dark-700);
-    border: 2px solid var(--color-dark-400);
-    border-radius: var(--radius-md);
-    color: var(--color-light-100);
-    font-size: var(--font-size-base);
-    font-family: var(--font-mono);
-    transition: all var(--transition-base);
-    box-shadow: var(--shadow-inset);
+    padding: 1rem;
+    background: var(--bg-darker);
+    border: 2px solid var(--purple);
+    border-radius: var(--radius-sm);
+    color: var(--fg);
+    font-size: 1.1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    transition: all var(--transition);
+    box-shadow:
+        inset 0 2px 8px rgba(0, 0, 0, 0.5),
+        0 0 10px var(--glow-purple);
 }
 
 .param-input input:hover {
-    border-color: var(--color-dark-300);
-    background: var(--color-dark-600);
+    border-color: var(--pink);
+    box-shadow:
+        inset 0 2px 8px rgba(0, 0, 0, 0.5),
+        0 0 15px var(--glow-pink);
 }
 
 .param-input input:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 4px var(--color-primary-glow), var(--shadow-inset);
+    border-color: var(--cyan);
     outline: none;
-    background: var(--color-dark-800);
-}
-
-/* Animación al cambiar valores */
-.param-input input:active {
-    transform: scale(0.99);
+    box-shadow:
+        inset 0 2px 8px rgba(0, 0, 0, 0.5),
+        0 0 25px var(--glow-cyan),
+        0 0 50px var(--glow-cyan);
+    background: var(--bg-dark);
 }
 
 /* ============================================
-   7. PANEL DE HISTORIAL DE OPERACIONES
+   HISTORIAL DE OPERACIONES
    ============================================ */
 #operation-history {
     display: flex;
@@ -413,80 +513,100 @@ aside h3::after {
 
 #operation-history li {
     padding: var(--spacing-md);
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: var(--radius-md);
-    border-left: 3px solid var(--color-primary);
-    transition: all var(--transition-base);
+    background: rgba(189, 147, 249, 0.1);
+    border: 1px solid var(--purple);
+    border-left: 4px solid var(--pink);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition);
     cursor: pointer;
-    font-size: var(--font-size-sm);
+    font-size: 0.9rem;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 0 10px var(--glow-purple);
 }
 
 #operation-history li::before {
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
-    width: 0%;
+    left: -100%;
+    width: 100%;
     height: 100%;
-    background: var(--gradient-glass);
-    transition: width var(--transition-base);
+    background: linear-gradient(90deg, transparent, var(--glow-pink), transparent);
+    transition: left 0.5s ease;
 }
 
 #operation-history li:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--color-primary);
-    transform: translateX(4px);
-    box-shadow: var(--shadow-md);
+    background: rgba(255, 121, 198, 0.2);
+    border-color: var(--pink);
+    transform: translateX(8px);
+    box-shadow: 0 0 25px var(--glow-pink), 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 
 #operation-history li:hover::before {
-    width: 100%;
+    left: 100%;
 }
 
 /* Botón de limpiar historial */
 #clear-history-tool {
     margin-top: var(--spacing-md);
-    padding: 0.8rem 1.2rem;
-    background: var(--gradient-danger);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
+    padding: 0.9rem 1.4rem;
+    background: var(--bg-medium);
+    color: var(--red);
+    border: 2px solid var(--red);
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    transition: all var(--transition-base);
-    box-shadow: var(--shadow-md);
-    position: relative;
-    overflow: hidden;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all var(--transition);
+    box-shadow: 0 0 10px rgba(255, 85, 85, 0.5);
 }
 
 #clear-history-tool:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg), 0 0 20px rgba(255, 71, 87, 0.4);
+    background: var(--red);
+    color: var(--bg-darker);
+    transform: translateY(-3px);
+    box-shadow: 0 0 30px rgba(255, 85, 85, 0.7), 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 #clear-history-tool:active {
-    transform: translateY(0);
-    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
 }
 
 /* ============================================
-   8. CONTENEDOR DE VISTA 3D
+   CONTENEDOR DE VISTA 3D
    ============================================ */
 #viewer-container {
     flex: 1;
     position: relative;
-    background: var(--color-dark-800);
+    background: var(--bg-darker);
     border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: var(--shadow-xl), var(--shadow-inset);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow:
+        inset 0 0 60px rgba(0, 0, 0, 0.5),
+        0 0 60px var(--glow-purple),
+        0 8px 32px rgba(0, 0, 0, 0.6);
+    border: 2px solid var(--purple);
 }
 
-/* Efecto de vignette sutil */
+/* Marco interno con efecto neón */
+#viewer-container::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    border: 1px solid rgba(189, 147, 249, 0.3);
+    border-radius: var(--radius-md);
+    pointer-events: none;
+    z-index: 1;
+    box-shadow: inset 0 0 20px var(--glow-purple);
+}
+
+/* Esquinas decorativas */
 #viewer-container::after {
     content: '';
     position: absolute;
@@ -494,7 +614,12 @@ aside h3::after {
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at center, transparent 50%, rgba(0, 0, 0, 0.3) 100%);
+    background:
+        linear-gradient(var(--purple), transparent 20%),
+        linear-gradient(to top, var(--purple), transparent 20%),
+        linear-gradient(to right, var(--purple), transparent 20%),
+        linear-gradient(to left, var(--purple), transparent 20%);
+    opacity: 0.1;
     pointer-events: none;
 }
 
@@ -505,119 +630,51 @@ aside h3::after {
 }
 
 /* ============================================
-   9. SCROLLBAR PERSONALIZADA
+   SCROLLBAR CYBERPUNK
    ============================================ */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--color-dark-700);
-    border-radius: var(--radius-full);
+    background: var(--bg-darker);
+    border-radius: var(--radius-sm);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--color-dark-400), var(--color-dark-300));
-    border-radius: var(--radius-full);
-    transition: background var(--transition-base);
+    background: var(--gradient-purple-pink);
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--bg-darker);
+    box-shadow: 0 0 10px var(--glow-pink);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--gradient-primary);
-    box-shadow: var(--shadow-glow);
+    background: var(--gradient-cyber);
+    box-shadow: 0 0 20px var(--glow-pink), 0 0 20px var(--glow-purple);
 }
 
 /* ============================================
-   10. ESTADOS Y ANIMACIONES
+   ANIMACIONES Y EFECTOS
    ============================================ */
 
-/* Loader/Spinner (para futuras implementaciones) */
-.loading {
-    position: relative;
-}
-
-.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    border: 3px solid var(--color-dark-400);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-    transform: translate(-50%, -50%);
-}
-
-@keyframes spin {
-    to { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-/* Fade in animation */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.param-input, #operation-history li {
-    animation: fadeIn 0.3s ease backwards;
-}
-
-.param-input:nth-child(1) { animation-delay: 0.05s; }
-.param-input:nth-child(2) { animation-delay: 0.1s; }
-.param-input:nth-child(3) { animation-delay: 0.15s; }
-.param-input:nth-child(4) { animation-delay: 0.2s; }
-.param-input:nth-child(5) { animation-delay: 0.25s; }
-
-/* ============================================
-   11. NOTIFICACIONES Y TOOLTIPS
-   ============================================ */
-
-/* Tooltip básico (para futuras implementaciones) */
-[data-tooltip] {
-    position: relative;
-}
-
-[data-tooltip]::before {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-8px);
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: rgba(0, 0, 0, 0.9);
-    backdrop-filter: blur(var(--blur-md));
-    color: white;
-    font-size: var(--font-size-xs);
-    border-radius: var(--radius-sm);
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: all var(--transition-base);
-    box-shadow: var(--shadow-lg);
-    z-index: 10000;
-}
-
-[data-tooltip]:hover::before {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-4px);
+/* Glitch effect (opcional) */
+@keyframes glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(-2px, -2px); }
+    60% { transform: translate(2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+    100% { transform: translate(0); }
 }
 
 /* ============================================
-   12. RESPONSIVE DESIGN
+   RESPONSIVE DESIGN
    ============================================ */
 
 @media (max-width: 1200px) {
     aside {
-        width: 260px;
+        width: 280px;
     }
 }
 
@@ -643,7 +700,7 @@ aside h3::after {
     }
 
     #toolbar h1 {
-        font-size: var(--font-size-2xl);
+        font-size: 2rem;
     }
 
     #toolbar nav {
@@ -663,54 +720,31 @@ aside h3::after {
     }
 
     #toolbar button {
-        padding: 0.6rem 1rem;
-        font-size: var(--font-size-xs);
+        padding: 0.7rem 1.2rem;
+        font-size: 0.8rem;
     }
 }
 
 /* ============================================
-   13. UTILIDADES
+   UTILIDADES
    ============================================ */
 
-/* Ocultar elementos */
 .hidden {
     display: none !important;
 }
 
-/* Deshabilitado */
 .disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     pointer-events: none;
 }
 
-/* No seleccionable */
 .no-select {
     user-select: none;
     -webkit-user-select: none;
 }
 
 /* ============================================
-   14. MODO DE ALTO CONTRASTE (ACCESIBILIDAD)
-   ============================================ */
-
-@media (prefers-contrast: high) {
-    :root {
-        --color-dark-600: #000000;
-        --color-dark-700: #000000;
-        --color-light-100: #ffffff;
-    }
-
-    #toolbar button {
-        border: 2px solid var(--color-primary);
-    }
-
-    .param-input input {
-        border-width: 3px;
-    }
-}
-
-/* ============================================
-   15. PREFERENCIA DE MOVIMIENTO REDUCIDO
+   ACCESIBILIDAD
    ============================================ */
 
 @media (prefers-reduced-motion: reduce) {
@@ -722,13 +756,5 @@ aside h3::after {
 }
 
 /* ============================================
-   16. DARK MODE PURO (Por si acaso)
-   ============================================ */
-
-@media (prefers-color-scheme: dark) {
-    /* Ya está en dark mode por defecto */
-}
-
-/* ============================================
-   FIN DEL SISTEMA DE DISEÑO
+   FIN DEL TEMA DRACULA CYBERPUNK
    ============================================ */
