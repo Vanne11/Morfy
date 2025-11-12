@@ -36,7 +36,8 @@ class InteractionManager {
 
     performRaycasting() {
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObjects(getAllSceneObjects());
+        // Usar true como segundo parámetro para buscar recursivamente en toda la jerarquía
+        const intersects = this.raycaster.intersectObjects(getAllSceneObjects(), true);
 
         if (intersects.length > 0) {
             const selected = intersects.find(i => i.object.isMesh);

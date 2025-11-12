@@ -1,5 +1,5 @@
 // Módulo para la creación de conos paramétricos
-import * as THREE from '../utils/threeUtils.js';
+import THREE from '../utils/threeUtils.js';
 import { addObjectToScene } from '../modules/renderer.js';
 import { ParametricObject } from '../modules/objects.js';
 

@@ -23,9 +23,17 @@ function updateParameterPanel() {
     }
 
     const object = selectedObjects[0]; // Solo manejamos un objeto a la vez
+
+    // Verificar que el objeto tenga userData y objectInstance
+    if (!object.userData || !object.userData.objectInstance) {
+        paramsContainer.innerHTML = '<p>El objeto seleccionado no tiene parámetros editables.</p>';
+        console.warn('El objeto no tiene userData.objectInstance:', object);
+        return;
+    }
+
     const objectInstance = object.userData.objectInstance;
 
-    if (objectInstance && objectInstance.params) {
+    if (objectInstance && typeof objectInstance.getParams === 'function') {
         renderParameterInputs(objectInstance, paramsContainer);
     } else {
         paramsContainer.innerHTML = '<p>El objeto seleccionado no tiene parámetros editables.</p>';
