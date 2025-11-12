@@ -1,6 +1,5 @@
 // Módulo para exportar a STL
-import * as THREE from '../utils/threeUtils.js';  // Asegúrate de importar THREE correctamente
-import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';  // Importar STLExporter desde la ruta correcta
+import THREE, { STLExporter } from '../utils/threeUtils.js';
 import { getAllSceneObjects } from './renderer.js';
 
 /**

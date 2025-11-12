@@ -1,5 +1,5 @@
 // Módulo para la creación de objetos paramétricos
-import * as THREE from '../utils/threeUtils.js';
+import THREE from '../utils/threeUtils.js';
 import { addObjectToScene } from './renderer.js';
 
 // Clase base para objetos paramétricos (exportada para ser extendida)
