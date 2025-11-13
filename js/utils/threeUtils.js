@@ -1,10 +1,11 @@
 // Importar THREE y complementos desde Three.js
-import * as THREE from 'three';  // Asegúrate de que THREE.js está importado correctamente
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; // Correcta importación de OrbitControls
-import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js'; // Correcta importación de STLExporter
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 
 // Exportar THREE y sus complementos
 export default THREE;
 
-// Exportar OrbitControls y STLExporter
-export { OrbitControls, STLExporter };
+// Exportar OrbitControls, TransformControls y STLExporter
+export { OrbitControls, TransformControls, STLExporter };

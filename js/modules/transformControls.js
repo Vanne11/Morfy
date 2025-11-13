@@ -1,5 +1,5 @@
 // Módulo para controles de transformación de objetos 3D
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import { TransformControls } from '../utils/threeUtils.js';
 import { getRendererManager } from './renderer.js';
 import { getSelectedObjects } from './operations.js';
 
