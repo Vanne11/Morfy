@@ -1,6 +1,7 @@
 // Módulo para la creación de objetos paramétricos
 import THREE from '../utils/threeUtils.js';
 import { addObjectToScene } from './renderer.js';
+import { assignObjectId } from '../components/objectsList.js';
 
 // Clase base para objetos paramétricos (exportada para ser extendida)
 export class ParametricObject {
@@ -29,6 +30,9 @@ export class ParametricObject {
         };
 
         addObjectToScene(this.mesh);
+
+        // Asignar ID y nombre al objeto
+        assignObjectId(this.mesh, this.type);
     }
 
     createGeometry() {

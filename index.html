@@ -32,26 +32,39 @@
 
         <!-- Contenido principal -->
         <main>
-            <!-- Panel de parámetros -->
-            <aside id="parameter-panel">
-                <h3>Parámetros del Objeto</h3>
-                <div id="current-params">
-                    <!-- Aquí se mostrarán los parámetros del objeto seleccionado -->
+            <!-- Panel izquierdo: Lista de objetos -->
+            <aside id="objects-panel">
+                <h3>Objetos en Escena</h3>
+                <div id="objects-list">
+                    <p>No hay objetos en la escena</p>
                 </div>
             </aside>
 
             <!-- Vista 3D -->
             <section id="viewer-container">
                 <div id="viewer"></div>
+                <div id="transform-controls-info">
+                    <p>W: Mover | E: Rotar | R: Escalar</p>
+                </div>
             </section>
 
-            <!-- Panel de operaciones -->
-            <aside id="operations-panel">
-                <h3>Historial de Operaciones</h3>
-                <div id="operation-history">
-                    <!-- Aquí se mostrará el historial de operaciones -->
+            <!-- Panel derecho superior: Parámetros -->
+            <aside id="right-panel">
+                <div id="parameter-panel">
+                    <h3>Parámetros del Objeto</h3>
+                    <div id="current-params">
+                        <!-- Aquí se mostrarán los parámetros del objeto seleccionado -->
+                    </div>
                 </div>
-                <button id="clear-history-tool">Limpiar Historial</button>
+
+                <!-- Panel derecho inferior: Historial -->
+                <div id="operations-panel">
+                    <h3>Historial de Operaciones</h3>
+                    <div id="operation-history">
+                        <!-- Aquí se mostrará el historial de operaciones -->
+                    </div>
+                    <button id="clear-history-tool">Limpiar Historial</button>
+                </div>
             </aside>
         </main>
     </div>

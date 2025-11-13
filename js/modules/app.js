@@ -2,7 +2,9 @@
 import { initializeRenderer } from './renderer.js';
 import { initializeToolbar } from '../components/toolbar.js';
 import { initializeParameterPanel } from '../components/parameterPanel.js';
+import { initializeObjectsList } from '../components/objectsList.js';
 import { initializeObjectInteraction } from './interaction.js';
+import { initializeTransformControls } from './transformControls.js';
 import { updateToolButtonsState } from './operations.js';
 import { initializeHistory } from './history.js';
 
@@ -41,6 +43,7 @@ class App {
         console.log('Inicializando la interfaz de usuario...');
         initializeToolbar();
         initializeParameterPanel();
+        initializeObjectsList();
         updateToolButtonsState();
         initializeHistory();
     }
@@ -48,6 +51,7 @@ class App {
     initInteraction() {
         console.log('Inicializando la interacción...');
         initializeObjectInteraction();
+        initializeTransformControls();
     }
 }
 
