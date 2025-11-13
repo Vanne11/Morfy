@@ -24,9 +24,20 @@ export function updateToolButtonsState() {
 }
 
 function setObjectColor(object, color) {
-    if (object.material && object.material.clone) {
-        object.material = object.material.clone();
-        object.material.color.set(color);
+    if (object.material) {
+        // Guardar el color original si no existe
+        if (!object.userData.originalColor) {
+            object.userData.originalColor = object.material.color.getHex();
+        }
+
+        // Clonar el material solo si no está clonado ya
+        if (!object.userData.materialCloned) {
+            object.material = object.material.clone();
+            object.userData.materialCloned = true;
+        }
+
+        object.material.color.setHex(color);
+        object.material.needsUpdate = true;
     }
 }
 
@@ -34,20 +45,25 @@ export function selectObject(object) {
     const index = selectedObjects.indexOf(object);
 
     if (index > -1) {
+        // Deseleccionar: restaurar color original
         selectedObjects.splice(index, 1);
-        setObjectColor(object, 0x3498db); // Color original
+        const originalColor = object.userData.originalColor || 0x3498db;
+        setObjectColor(object, originalColor);
     } else {
-        if (selectedObjects.length >= 2) {
+        // Si ya hay 2 objetos seleccionados, deseleccionar el más antiguo
+        if (selectedObjects.length >= 1) {
+            // Para TransformControls solo permitimos 1 objeto seleccionado
             const oldestObject = selectedObjects.shift();
-            setObjectColor(oldestObject, 0x3498db);
+            const originalColor = oldestObject.userData.originalColor || 0x3498db;
+            setObjectColor(oldestObject, originalColor);
         }
         selectedObjects.push(object);
-        setObjectColor(object, 0xf39c12); // Color seleccionado
+        setObjectColor(object, 0xffaa00); // Color amarillo brillante para selección
     }
-    
+
     updateToolButtonsState();
-    document.dispatchEvent(new CustomEvent('objectSelected', { 
-        detail: { selectedObjects: [...selectedObjects] } 
+    document.dispatchEvent(new CustomEvent('objectSelected', {
+        detail: { selectedObjects: [...selectedObjects] }
     }));
 }
 
@@ -56,9 +72,12 @@ export function getSelectedObjects() {
 }
 
 export function clearSelection() {
-    selectedObjects.forEach(obj => setObjectColor(obj, 0x3498db));
+    selectedObjects.forEach(obj => {
+        const originalColor = obj.userData.originalColor || 0x3498db;
+        setObjectColor(obj, originalColor);
+    });
     selectedObjects = [];
-    
+
     updateToolButtonsState();
     document.dispatchEvent(new CustomEvent('objectSelected', { detail: { selectedObjects: [] } }));
 }
