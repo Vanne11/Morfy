@@ -1,0 +1,26 @@
+[
+  {
+    "id": "tpl_finger_basic",
+    "name": "Férula de Dedo (Básica)",
+    "description": "Plantilla rectangular estándar para inmovilización de falanges.",
+    "category": "Dedos",
+    "file": "/templates/finger_basic.json",
+    "source": "system"
+  },
+  {
+    "id": "tpl_wrist_support",
+    "name": "Soporte de Muñeca (Plano)",
+    "description": "Base rectangular para órtesis de muñeca moldeable.",
+    "category": "Muñeca",
+    "file": "/templates/wrist_flat.json",
+    "source": "system"
+  },
+  {
+    "id": "tpl_material_sheet",
+    "name": "Lámina de Material",
+    "description": "Plancha base para corte libre de termoplástico.",
+    "category": "Materiales",
+    "file": "/templates/sheet.json",
+    "source": "system"
+  }
+]
