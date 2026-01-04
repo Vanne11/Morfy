@@ -1,70 +1,13 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Morfy - Editor de Objetos Paramétricos 3D</title>
-
-    <!-- 🔹 Favicon -->
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
-
-    <link rel="stylesheet" href="css/main.css">
-</head>
-<body>
-    <div id="app">
-        <!-- Barra de herramientas superior -->
-        <header id="toolbar">
-            <h1>Morfy</h1>
-            <nav>
-                <button id="cube-tool">Cubo</button>
-                <button id="cylinder-tool">Cilindro</button>
-                <button id="sphere-tool">Esfera</button>
-                <button id="cone-tool">Cono</button>
-                <button id="torus-tool">Toro</button>
-                <button id="plane-tool">Plano</button>
-                <button id="union-tool">Unir</button>
-                <button id="difference-tool">Cortar</button>
-                <button id="intersection-tool">Intersectar</button>
-                <button id="export-stl">Exportar STL</button>
-                <button id="clear-selection-tool">Limpiar Selección</button>
-            </nav>
-        </header>
-
-        <!-- Contenido principal -->
-        <main>
-            <!-- Panel de parámetros -->
-            <aside id="parameter-panel">
-                <h3>Parámetros del Objeto</h3>
-                <div id="current-params">
-                    <!-- Aquí se mostrarán los parámetros del objeto seleccionado -->
-                </div>
-            </aside>
-
-            <!-- Vista 3D -->
-            <section id="viewer-container">
-                <div id="viewer"></div>
-            </section>
-
-            <!-- Panel de operaciones -->
-            <aside id="operations-panel">
-                <h3>Historial de Operaciones</h3>
-                <div id="operation-history">
-                    <!-- Aquí se mostrará el historial de operaciones -->
-                </div>
-                <button id="clear-history-tool">Limpiar Historial</button>
-            </aside>
-        </main>
-    </div>
-
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "./node_modules/three/build/three.module.js",
-          "three/examples/jsm/": "./node_modules/three/examples/jsm/"
-        }
-      }
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/opencascade.js@0.0.3-alpha.1/opencascade.wasm.js"></script>
-    <script type="module" src="js/main.js"></script>
-</body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>morfy</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

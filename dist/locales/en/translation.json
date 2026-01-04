@@ -1,0 +1,28 @@
+{
+  "app": {
+    "title": "Morfy"
+  },
+  "menubar": {
+    "file": {
+      "title": "File",
+      "items": {
+        "new": "New",
+        "open": "Open",
+        "save": "Save",
+        "saveAs": "Save As...",
+        "import": "Import",
+        "export": "Export",
+        "exit": "Exit"
+      }
+    }
+  },
+  "toolbar": {
+    "title": "Tools"
+  },
+  "properties": {
+    "title": "Properties"
+  },
+  "viewer": {
+    "title": "3D Viewer"
+  }
+}
