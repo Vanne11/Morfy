@@ -1,0 +1,266 @@
+{
+  "name": "Férula de Muñeca con Ventilación",
+  "type": "svg_parametric",
+  "version": "2.0",
+  "description": "Férula volar para muñeca con forma anatómica. Incluye patrón de ventilación hexagonal.",
+
+  "ui_controls": [
+    {
+      "id": "longitud",
+      "label": "Longitud Total",
+      "type": "slider",
+      "min": 120,
+      "max": 180,
+      "step": 5,
+      "default": 150,
+      "unit": "mm",
+      "impacts": {
+        "longitud_total": { "operation": "set", "value": null }
+      }
+    },
+    {
+      "id": "circunferencia",
+      "label": "Circunferencia de Muñeca",
+      "type": "slider",
+      "min": 50,
+      "max": 80,
+      "step": 2,
+      "default": 65,
+      "unit": "mm",
+      "impacts": {
+        "ancho_muneca": { "operation": "set", "value": null }
+      }
+    },
+    {
+      "id": "ancho_antebrazo",
+      "label": "Ancho del Antebrazo",
+      "type": "slider",
+      "min": 60,
+      "max": 90,
+      "step": 2,
+      "default": 75,
+      "unit": "mm",
+      "impacts": {
+        "ancho_antebrazo": { "operation": "set", "value": null }
+      }
+    },
+    {
+      "id": "grosor",
+      "label": "Grosor del Material",
+      "type": "slider",
+      "min": 2.5,
+      "max": 4.5,
+      "step": 0.5,
+      "default": 3.2,
+      "unit": "mm",
+      "impacts": {
+        "grosor": { "operation": "set", "value": null }
+      }
+    }
+  ],
+
+  "params": {
+    "longitud_total": 150,
+    "ancho_muneca": 65,
+    "ancho_antebrazo": 75,
+    "grosor": 3.2,
+    "curva_ergonomica": 8,
+    "color": "#34d399"
+  },
+
+  "geometry": {
+    "vertices": {
+      "base_mano_izq": {
+        "x": 0,
+        "y": "params.ancho_muneca * 0.2"
+      },
+      "base_mano_der": {
+        "x": 0,
+        "y": "params.ancho_muneca * 0.8"
+      },
+
+      "transicion_izq": {
+        "x": "params.longitud_total * 0.3",
+        "y": "params.ancho_muneca * 0.15"
+      },
+      "transicion_der": {
+        "x": "params.longitud_total * 0.3",
+        "y": "params.ancho_muneca * 0.85"
+      },
+
+      "antebrazo_izq": {
+        "x": "params.longitud_total * 0.7",
+        "y": "(params.ancho_muneca - params.ancho_antebrazo) / 2"
+      },
+      "antebrazo_der": {
+        "x": "params.longitud_total * 0.7",
+        "y": "(params.ancho_muneca + params.ancho_antebrazo) / 2"
+      },
+
+      "fin_izq": {
+        "x": "params.longitud_total",
+        "y": "(params.ancho_muneca - params.ancho_antebrazo) / 2 + 5"
+      },
+      "fin_der": {
+        "x": "params.longitud_total",
+        "y": "(params.ancho_muneca + params.ancho_antebrazo) / 2 - 5"
+      },
+
+      "ctrl_mano_izq": {
+        "x": "params.longitud_total * 0.1",
+        "y": "params.ancho_muneca * 0.1 - params.curva_ergonomica"
+      },
+      "ctrl_mano_der": {
+        "x": "params.longitud_total * 0.1",
+        "y": "params.ancho_muneca * 0.9 + params.curva_ergonomica"
+      },
+
+      "ctrl_trans_izq": {
+        "x": "params.longitud_total * 0.5",
+        "y": "-params.curva_ergonomica"
+      },
+      "ctrl_trans_der": {
+        "x": "params.longitud_total * 0.5",
+        "y": "params.ancho_muneca + params.curva_ergonomica"
+      },
+
+      "ctrl_fin_izq": {
+        "x": "params.longitud_total * 0.85",
+        "y": "(params.ancho_muneca - params.ancho_antebrazo) / 2 - 3"
+      },
+      "ctrl_fin_der": {
+        "x": "params.longitud_total * 0.85",
+        "y": "(params.ancho_muneca + params.ancho_antebrazo) / 2 + 3"
+      },
+
+      "h1_v1": { "x": "params.longitud_total * 0.2 - 4", "y": "params.ancho_muneca * 0.3" },
+      "h1_v2": { "x": "params.longitud_total * 0.2 + 4", "y": "params.ancho_muneca * 0.3" },
+      "h1_v3": { "x": "params.longitud_total * 0.2 + 4", "y": "params.ancho_muneca * 0.7" },
+      "h1_v4": { "x": "params.longitud_total * 0.2 - 4", "y": "params.ancho_muneca * 0.7" },
+
+      "h2_v1": { "x": "params.longitud_total * 0.4 - 5", "y": "params.ancho_muneca * 0.25" },
+      "h2_v2": { "x": "params.longitud_total * 0.4 + 5", "y": "params.ancho_muneca * 0.25" },
+      "h2_v3": { "x": "params.longitud_total * 0.4 + 5", "y": "params.ancho_muneca * 0.75" },
+      "h2_v4": { "x": "params.longitud_total * 0.4 - 5", "y": "params.ancho_muneca * 0.75" },
+
+      "h3_v1": { "x": "params.longitud_total * 0.6 - 5", "y": "params.ancho_muneca * 0.3" },
+      "h3_v2": { "x": "params.longitud_total * 0.6 + 5", "y": "params.ancho_muneca * 0.3" },
+      "h3_v3": { "x": "params.longitud_total * 0.6 + 5", "y": "params.ancho_muneca * 0.7" },
+      "h3_v4": { "x": "params.longitud_total * 0.6 - 5", "y": "params.ancho_muneca * 0.7" },
+
+      "h4_v1": { "x": "params.longitud_total * 0.8 - 4", "y": "params.ancho_muneca * 0.35" },
+      "h4_v2": { "x": "params.longitud_total * 0.8 + 4", "y": "params.ancho_muneca * 0.35" },
+      "h4_v3": { "x": "params.longitud_total * 0.8 + 4", "y": "params.ancho_muneca * 0.65" },
+      "h4_v4": { "x": "params.longitud_total * 0.8 - 4", "y": "params.ancho_muneca * 0.65" }
+    },
+
+    "contours": [
+      {
+        "id": "exterior",
+        "type": "outer",
+        "closed": true,
+        "elements": [
+          {
+            "type": "bezier_quadratic",
+            "from": "base_mano_izq",
+            "to": "transicion_izq",
+            "control": "ctrl_mano_izq"
+          },
+          {
+            "type": "bezier_quadratic",
+            "from": "transicion_izq",
+            "to": "antebrazo_izq",
+            "control": "ctrl_trans_izq"
+          },
+          {
+            "type": "bezier_quadratic",
+            "from": "antebrazo_izq",
+            "to": "fin_izq",
+            "control": "ctrl_fin_izq"
+          },
+          {
+            "type": "line",
+            "from": "fin_izq",
+            "to": "fin_der"
+          },
+          {
+            "type": "bezier_quadratic",
+            "from": "fin_der",
+            "to": "antebrazo_der",
+            "control": "ctrl_fin_der"
+          },
+          {
+            "type": "bezier_quadratic",
+            "from": "antebrazo_der",
+            "to": "transicion_der",
+            "control": "ctrl_trans_der"
+          },
+          {
+            "type": "bezier_quadratic",
+            "from": "transicion_der",
+            "to": "base_mano_der",
+            "control": "ctrl_mano_der"
+          },
+          {
+            "type": "line",
+            "from": "base_mano_der",
+            "to": "base_mano_izq"
+          }
+        ]
+      },
+      {
+        "id": "ventilacion_1",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          { "type": "line", "from": "h1_v1", "to": "h1_v2" },
+          { "type": "line", "from": "h1_v2", "to": "h1_v3" },
+          { "type": "line", "from": "h1_v3", "to": "h1_v4" },
+          { "type": "line", "from": "h1_v4", "to": "h1_v1" }
+        ]
+      },
+      {
+        "id": "ventilacion_2",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          { "type": "line", "from": "h2_v1", "to": "h2_v2" },
+          { "type": "line", "from": "h2_v2", "to": "h2_v3" },
+          { "type": "line", "from": "h2_v3", "to": "h2_v4" },
+          { "type": "line", "from": "h2_v4", "to": "h2_v1" }
+        ]
+      },
+      {
+        "id": "ventilacion_3",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          { "type": "line", "from": "h3_v1", "to": "h3_v2" },
+          { "type": "line", "from": "h3_v2", "to": "h3_v3" },
+          { "type": "line", "from": "h3_v3", "to": "h3_v4" },
+          { "type": "line", "from": "h3_v4", "to": "h3_v1" }
+        ]
+      },
+      {
+        "id": "ventilacion_4",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          { "type": "line", "from": "h4_v1", "to": "h4_v2" },
+          { "type": "line", "from": "h4_v2", "to": "h4_v3" },
+          { "type": "line", "from": "h4_v3", "to": "h4_v4" },
+          { "type": "line", "from": "h4_v4", "to": "h4_v1" }
+        ]
+      }
+    ],
+
+    "extrusion": {
+      "height": "params.grosor",
+      "bevel": true,
+      "bevelThickness": 0.4,
+      "bevelSize": 0.4,
+      "bevelSegments": 4,
+      "curveSegments": 32
+    }
+  }
+}

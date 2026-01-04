@@ -14,6 +14,7 @@ import { Info, Code, Camera, HelpCircle, ChevronDown } from "lucide-react";
 
 interface TemplateEditorProps {
   template: ITemplate | null;
+  isSystemTemplate?: boolean;
   onSaved: () => void;
   onCancel: () => void;
 }
@@ -62,7 +63,7 @@ const LivePreview = forwardRef(({ data }: { data: any }, ref) => {
   );
 });
 
-export function TemplateEditor({ template, onSaved, onCancel }: TemplateEditorProps) {
+export function TemplateEditor({ template, isSystemTemplate = false, onSaved, onCancel }: TemplateEditorProps) {
   const previewRef = useRef<any>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("General");
@@ -111,7 +112,7 @@ export function TemplateEditor({ template, onSaved, onCancel }: TemplateEditorPr
 
   const handleSave = async () => {
     if (!name.trim()) return toast.error("El nombre es obligatorio");
-    
+
     let parsedContent;
     try {
       parsedContent = JSON.parse(jsonContent);
@@ -124,7 +125,9 @@ export function TemplateEditor({ template, onSaved, onCancel }: TemplateEditorPr
       // CAPTURA AUTOMÁTICA DEL THUMBNAIL
       const thumb = previewRef.current?.capture();
 
-      const id = template?.id || nanoid();
+      // Si es plantilla del sistema, SIEMPRE crear un nuevo ID (no modificar el original)
+      const id = isSystemTemplate ? nanoid() : (template?.id || nanoid());
+
       const newTemplate: ITemplate = {
         id,
         name,
@@ -132,11 +135,17 @@ export function TemplateEditor({ template, onSaved, onCancel }: TemplateEditorPr
         description,
         thumbnail: thumb,
         content: parsedContent,
-        createdAt: template?.createdAt || new Date(),
+        createdAt: new Date(), // Nueva fecha de creación para copias del sistema
       };
 
       await db.templates.put(newTemplate);
-      toast.success("Plantilla y Miniatura guardadas");
+
+      if (isSystemTemplate) {
+        toast.success("Copia personalizada creada exitosamente");
+      } else {
+        toast.success("Plantilla y Miniatura guardadas");
+      }
+
       onSaved();
     } catch (error) {
       console.error(error);
@@ -148,7 +157,22 @@ export function TemplateEditor({ template, onSaved, onCancel }: TemplateEditorPr
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
+
+      {isSystemTemplate && (
+        <Card className="bg-blue-500/10 border-blue-500/30">
+          <CardContent className="p-4 flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
+            <div className="text-sm space-y-1">
+              <p className="font-bold text-blue-600 dark:text-blue-400">Editando Plantilla del Sistema</p>
+              <p className="text-muted-foreground text-xs">
+                Esta es una plantilla predeterminada. Al guardar, se creará una <strong>copia personalizada</strong> en tu librería.
+                La plantilla original permanecerá intacta.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         
         {/* LADO IZQUIERDO: EDITOR Y GUIA (7/12) */}
@@ -164,7 +188,12 @@ export function TemplateEditor({ template, onSaved, onCancel }: TemplateEditorPr
                     <Button variant="outline" size="sm" onClick={onCancel}>Cancelar</Button>
                     <Button onClick={handleSave} disabled={isSaving} className="gap-2 shadow-md">
                         <Camera className="h-4 w-4" />
-                        {isSaving ? "Guardando..." : "Guardar y Capturar"}
+                        {isSaving
+                          ? "Guardando..."
+                          : isSystemTemplate
+                            ? "Guardar como Copia"
+                            : "Guardar y Capturar"
+                        }
                     </Button>
                 </div>
               </div>

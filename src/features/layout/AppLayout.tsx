@@ -31,15 +31,11 @@ export function AppLayout() {
   }, [selectedObject]);
 
   const handleParamUpdate = (newParams: any, uiValues?: any) => {
-      setParametricData((prev: any) => ({ 
-          ...prev, 
+      setParametricData((prev: any) => ({
+          ...prev,
           params: newParams,
-          ui_values: uiValues || prev.ui_values 
+          ui_values: uiValues || prev.ui_values
       }));
-  };
-
-  const handleShapeUpdate = (newShape: any) => {
-      setParametricData((prev: any) => ({ ...prev, shape: newShape }));
   };
 
   return (
@@ -54,10 +50,9 @@ export function AppLayout() {
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={60} minSize={30}>
-          <Viewer 
-            selectedObject={selectedObject} 
-            parametricData={parametricData} 
-            onUpdateShape={handleShapeUpdate}
+          <Viewer
+            selectedObject={selectedObject}
+            parametricData={parametricData}
           />
         </ResizablePanel>
         <ResizableHandle withHandle />

@@ -1,0 +1,235 @@
+{
+  "name": "Férula de Dedo Anatómica",
+  "type": "svg_parametric",
+  "version": "2.0",
+  "description": "Férula con forma anatómica para inmovilización de dedos. Incluye ventilaciones laterales.",
+
+  "ui_controls": [
+    {
+      "id": "longitud_dedo",
+      "label": "Longitud del Dedo",
+      "type": "slider",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "default": 70,
+      "unit": "mm",
+      "impacts": {
+        "longitud": { "operation": "set", "value": null }
+      }
+    },
+    {
+      "id": "ancho_base",
+      "label": "Ancho en Base (articulación)",
+      "type": "slider",
+      "min": 15,
+      "max": 30,
+      "step": 1,
+      "default": 22,
+      "unit": "mm",
+      "impacts": {
+        "ancho_proximal": { "operation": "set", "value": null }
+      }
+    },
+    {
+      "id": "ancho_punta",
+      "label": "Ancho en Punta",
+      "type": "slider",
+      "min": 10,
+      "max": 25,
+      "step": 1,
+      "default": 16,
+      "unit": "mm",
+      "impacts": {
+        "ancho_distal": { "operation": "set", "value": null }
+      }
+    },
+    {
+      "id": "grosor",
+      "label": "Grosor del Material",
+      "type": "slider",
+      "min": 2,
+      "max": 4,
+      "step": 0.5,
+      "default": 2.5,
+      "unit": "mm",
+      "impacts": {
+        "grosor": { "operation": "set", "value": null }
+      }
+    }
+  ],
+
+  "params": {
+    "longitud": 70,
+    "ancho_proximal": 22,
+    "ancho_distal": 16,
+    "grosor": 2.5,
+    "curvatura_lateral": 3,
+    "color": "#60a5fa"
+  },
+
+  "geometry": {
+    "vertices": {
+      "base_izq": {
+        "x": 0,
+        "y": 0
+      },
+      "base_der": {
+        "x": 0,
+        "y": "params.ancho_proximal"
+      },
+      "punta_izq": {
+        "x": "params.longitud",
+        "y": "params.ancho_proximal / 2 - params.ancho_distal / 2"
+      },
+      "punta_der": {
+        "x": "params.longitud",
+        "y": "params.ancho_proximal / 2 + params.ancho_distal / 2"
+      },
+
+      "ctrl_base_izq": {
+        "x": "params.longitud * 0.3",
+        "y": "-params.curvatura_lateral"
+      },
+      "ctrl_punta_izq": {
+        "x": "params.longitud * 0.8",
+        "y": "params.ancho_proximal / 2 - params.ancho_distal / 2 - params.curvatura_lateral"
+      },
+      "ctrl_punta_der": {
+        "x": "params.longitud * 0.8",
+        "y": "params.ancho_proximal / 2 + params.ancho_distal / 2 + params.curvatura_lateral"
+      },
+      "ctrl_base_der": {
+        "x": "params.longitud * 0.3",
+        "y": "params.ancho_proximal + params.curvatura_lateral"
+      },
+
+      "vent1_tl": {
+        "x": "params.longitud * 0.25 - 3",
+        "y": "params.ancho_proximal * 0.3"
+      },
+      "vent1_tr": {
+        "x": "params.longitud * 0.25 + 3",
+        "y": "params.ancho_proximal * 0.3"
+      },
+      "vent1_br": {
+        "x": "params.longitud * 0.25 + 3",
+        "y": "params.ancho_proximal * 0.7"
+      },
+      "vent1_bl": {
+        "x": "params.longitud * 0.25 - 3",
+        "y": "params.ancho_proximal * 0.7"
+      },
+
+      "vent2_tl": {
+        "x": "params.longitud * 0.5 - 3",
+        "y": "params.ancho_proximal * 0.35"
+      },
+      "vent2_tr": {
+        "x": "params.longitud * 0.5 + 3",
+        "y": "params.ancho_proximal * 0.35"
+      },
+      "vent2_br": {
+        "x": "params.longitud * 0.5 + 3",
+        "y": "params.ancho_proximal * 0.65"
+      },
+      "vent2_bl": {
+        "x": "params.longitud * 0.5 - 3",
+        "y": "params.ancho_proximal * 0.65"
+      },
+
+      "vent3_tl": {
+        "x": "params.longitud * 0.75 - 2.5",
+        "y": "params.ancho_proximal * 0.4"
+      },
+      "vent3_tr": {
+        "x": "params.longitud * 0.75 + 2.5",
+        "y": "params.ancho_proximal * 0.4"
+      },
+      "vent3_br": {
+        "x": "params.longitud * 0.75 + 2.5",
+        "y": "params.ancho_proximal * 0.6"
+      },
+      "vent3_bl": {
+        "x": "params.longitud * 0.75 - 2.5",
+        "y": "params.ancho_proximal * 0.6"
+      }
+    },
+
+    "contours": [
+      {
+        "id": "exterior",
+        "type": "outer",
+        "closed": true,
+        "elements": [
+          {
+            "type": "bezier_quadratic",
+            "from": "base_izq",
+            "to": "punta_izq",
+            "control": "ctrl_base_izq"
+          },
+          {
+            "type": "bezier_quadratic",
+            "from": "punta_izq",
+            "to": "punta_der",
+            "control": "ctrl_punta_izq"
+          },
+          {
+            "type": "bezier_quadratic",
+            "from": "punta_der",
+            "to": "base_der",
+            "control": "ctrl_punta_der"
+          },
+          {
+            "type": "bezier_quadratic",
+            "from": "base_der",
+            "to": "base_izq",
+            "control": "ctrl_base_der"
+          }
+        ]
+      },
+      {
+        "id": "ventilacion_1",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          { "type": "line", "from": "vent1_tl", "to": "vent1_tr" },
+          { "type": "line", "from": "vent1_tr", "to": "vent1_br" },
+          { "type": "line", "from": "vent1_br", "to": "vent1_bl" },
+          { "type": "line", "from": "vent1_bl", "to": "vent1_tl" }
+        ]
+      },
+      {
+        "id": "ventilacion_2",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          { "type": "line", "from": "vent2_tl", "to": "vent2_tr" },
+          { "type": "line", "from": "vent2_tr", "to": "vent2_br" },
+          { "type": "line", "from": "vent2_br", "to": "vent2_bl" },
+          { "type": "line", "from": "vent2_bl", "to": "vent2_tl" }
+        ]
+      },
+      {
+        "id": "ventilacion_3",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          { "type": "line", "from": "vent3_tl", "to": "vent3_tr" },
+          { "type": "line", "from": "vent3_tr", "to": "vent3_br" },
+          { "type": "line", "from": "vent3_br", "to": "vent3_bl" },
+          { "type": "line", "from": "vent3_bl", "to": "vent3_tl" }
+        ]
+      }
+    ],
+
+    "extrusion": {
+      "height": "params.grosor",
+      "bevel": true,
+      "bevelThickness": 0.3,
+      "bevelSize": 0.3,
+      "bevelSegments": 3,
+      "curveSegments": 24
+    }
+  }
+}

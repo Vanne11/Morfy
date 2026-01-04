@@ -3,12 +3,12 @@ import { NavLink } from "react-router-dom";
 import { buttonVariants } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Library, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Library, Settings } from "lucide-react";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/library", label: "Librería", icon: Library },
-  { to: "/admin", label: "Admin", icon: ShieldCheck },
+  { to: "/admin", label: "Configuración", icon: Settings },
 ];
 
 export function Sidebar() {

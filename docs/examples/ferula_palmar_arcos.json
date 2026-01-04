@@ -1,0 +1,426 @@
+{
+  "name": "Férula Palmar con Arcos",
+  "type": "svg_parametric",
+  "version": "2.0",
+  "description": "Férula palmar con bordes redondeados mediante arcos. Incluye ranuras de ventilación circulares.",
+
+  "ui_controls": [
+    {
+      "id": "escala",
+      "label": "Escala General",
+      "type": "slider",
+      "min": 0.7,
+      "max": 1.4,
+      "step": 0.05,
+      "default": 1.0,
+      "impacts": {
+        "longitud": { "operation": "multiply", "value": 90 },
+        "ancho": { "operation": "multiply", "value": 60 }
+      }
+    },
+    {
+      "id": "grosor",
+      "label": "Grosor del Material",
+      "type": "slider",
+      "min": 2,
+      "max": 4,
+      "step": 0.5,
+      "default": 3,
+      "unit": "mm",
+      "impacts": {
+        "grosor": { "operation": "set", "value": null }
+      }
+    },
+    {
+      "id": "radio_esquinas",
+      "label": "Redondeo de Esquinas",
+      "type": "slider",
+      "min": 3,
+      "max": 15,
+      "step": 1,
+      "default": 8,
+      "unit": "mm",
+      "impacts": {
+        "radio_esquina": { "operation": "set", "value": null }
+      }
+    }
+  ],
+
+  "params": {
+    "longitud": 90,
+    "ancho": 60,
+    "grosor": 3,
+    "radio_esquina": 8,
+    "radio_ventilacion": 3,
+    "color": "#f59e0b"
+  },
+
+  "geometry": {
+    "vertices": {
+      "esq_inf_izq": {
+        "x": "params.radio_esquina",
+        "y": "params.radio_esquina"
+      },
+      "esq_inf_der": {
+        "x": "params.longitud - params.radio_esquina",
+        "y": "params.radio_esquina"
+      },
+      "esq_sup_der": {
+        "x": "params.longitud - params.radio_esquina",
+        "y": "params.ancho - params.radio_esquina"
+      },
+      "esq_sup_izq": {
+        "x": "params.radio_esquina",
+        "y": "params.ancho - params.radio_esquina"
+      },
+
+      "lado_inf_der": {
+        "x": "params.longitud - params.radio_esquina",
+        "y": 0
+      },
+      "lado_der_sup": {
+        "x": "params.longitud",
+        "y": "params.ancho - params.radio_esquina"
+      },
+      "lado_sup_izq": {
+        "x": "params.radio_esquina",
+        "y": "params.ancho"
+      },
+      "lado_izq_inf": {
+        "x": 0,
+        "y": "params.radio_esquina"
+      },
+
+      "vent1_centro": {
+        "x": "params.longitud * 0.25",
+        "y": "params.ancho * 0.3"
+      },
+      "vent1_top": {
+        "x": "params.longitud * 0.25",
+        "y": "params.ancho * 0.3 - params.radio_ventilacion"
+      },
+      "vent1_right": {
+        "x": "params.longitud * 0.25 + params.radio_ventilacion",
+        "y": "params.ancho * 0.3"
+      },
+      "vent1_bottom": {
+        "x": "params.longitud * 0.25",
+        "y": "params.ancho * 0.3 + params.radio_ventilacion"
+      },
+      "vent1_left": {
+        "x": "params.longitud * 0.25 - params.radio_ventilacion",
+        "y": "params.ancho * 0.3"
+      },
+
+      "vent2_centro": {
+        "x": "params.longitud * 0.25",
+        "y": "params.ancho * 0.7"
+      },
+      "vent2_top": {
+        "x": "params.longitud * 0.25",
+        "y": "params.ancho * 0.7 - params.radio_ventilacion"
+      },
+      "vent2_right": {
+        "x": "params.longitud * 0.25 + params.radio_ventilacion",
+        "y": "params.ancho * 0.7"
+      },
+      "vent2_bottom": {
+        "x": "params.longitud * 0.25",
+        "y": "params.ancho * 0.7 + params.radio_ventilacion"
+      },
+      "vent2_left": {
+        "x": "params.longitud * 0.25 - params.radio_ventilacion",
+        "y": "params.ancho * 0.7"
+      },
+
+      "vent3_centro": {
+        "x": "params.longitud * 0.5",
+        "y": "params.ancho * 0.5"
+      },
+      "vent3_top": {
+        "x": "params.longitud * 0.5",
+        "y": "params.ancho * 0.5 - params.radio_ventilacion"
+      },
+      "vent3_right": {
+        "x": "params.longitud * 0.5 + params.radio_ventilacion",
+        "y": "params.ancho * 0.5"
+      },
+      "vent3_bottom": {
+        "x": "params.longitud * 0.5",
+        "y": "params.ancho * 0.5 + params.radio_ventilacion"
+      },
+      "vent3_left": {
+        "x": "params.longitud * 0.5 - params.radio_ventilacion",
+        "y": "params.ancho * 0.5"
+      },
+
+      "vent4_centro": {
+        "x": "params.longitud * 0.75",
+        "y": "params.ancho * 0.3"
+      },
+      "vent4_top": {
+        "x": "params.longitud * 0.75",
+        "y": "params.ancho * 0.3 - params.radio_ventilacion"
+      },
+      "vent4_right": {
+        "x": "params.longitud * 0.75 + params.radio_ventilacion",
+        "y": "params.ancho * 0.3"
+      },
+      "vent4_bottom": {
+        "x": "params.longitud * 0.75",
+        "y": "params.ancho * 0.3 + params.radio_ventilacion"
+      },
+      "vent4_left": {
+        "x": "params.longitud * 0.75 - params.radio_ventilacion",
+        "y": "params.ancho * 0.3"
+      },
+
+      "vent5_centro": {
+        "x": "params.longitud * 0.75",
+        "y": "params.ancho * 0.7"
+      },
+      "vent5_top": {
+        "x": "params.longitud * 0.75",
+        "y": "params.ancho * 0.7 - params.radio_ventilacion"
+      },
+      "vent5_right": {
+        "x": "params.longitud * 0.75 + params.radio_ventilacion",
+        "y": "params.ancho * 0.7"
+      },
+      "vent5_bottom": {
+        "x": "params.longitud * 0.75",
+        "y": "params.ancho * 0.7 + params.radio_ventilacion"
+      },
+      "vent5_left": {
+        "x": "params.longitud * 0.75 - params.radio_ventilacion",
+        "y": "params.ancho * 0.7"
+      }
+    },
+
+    "contours": [
+      {
+        "id": "exterior",
+        "type": "outer",
+        "closed": true,
+        "elements": [
+          { "type": "line", "from": "esq_inf_izq", "to": "esq_inf_der" },
+          {
+            "type": "arc",
+            "from": "esq_inf_der",
+            "to": "lado_inf_der",
+            "radius": "params.radio_esquina",
+            "clockwise": true
+          },
+          { "type": "line", "from": "lado_inf_der", "to": "esq_sup_der" },
+          {
+            "type": "arc",
+            "from": "esq_sup_der",
+            "to": "lado_der_sup",
+            "radius": "params.radio_esquina",
+            "clockwise": true
+          },
+          { "type": "line", "from": "lado_der_sup", "to": "esq_sup_izq" },
+          {
+            "type": "arc",
+            "from": "esq_sup_izq",
+            "to": "lado_sup_izq",
+            "radius": "params.radio_esquina",
+            "clockwise": true
+          },
+          { "type": "line", "from": "lado_sup_izq", "to": "esq_inf_izq" },
+          {
+            "type": "arc",
+            "from": "esq_inf_izq",
+            "to": "lado_izq_inf",
+            "radius": "params.radio_esquina",
+            "clockwise": true
+          }
+        ]
+      },
+      {
+        "id": "ventilacion_1",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          {
+            "type": "arc",
+            "from": "vent1_top",
+            "to": "vent1_right",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent1_right",
+            "to": "vent1_bottom",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent1_bottom",
+            "to": "vent1_left",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent1_left",
+            "to": "vent1_top",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          }
+        ]
+      },
+      {
+        "id": "ventilacion_2",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          {
+            "type": "arc",
+            "from": "vent2_top",
+            "to": "vent2_right",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent2_right",
+            "to": "vent2_bottom",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent2_bottom",
+            "to": "vent2_left",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent2_left",
+            "to": "vent2_top",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          }
+        ]
+      },
+      {
+        "id": "ventilacion_3",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          {
+            "type": "arc",
+            "from": "vent3_top",
+            "to": "vent3_right",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent3_right",
+            "to": "vent3_bottom",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent3_bottom",
+            "to": "vent3_left",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent3_left",
+            "to": "vent3_top",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          }
+        ]
+      },
+      {
+        "id": "ventilacion_4",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          {
+            "type": "arc",
+            "from": "vent4_top",
+            "to": "vent4_right",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent4_right",
+            "to": "vent4_bottom",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent4_bottom",
+            "to": "vent4_left",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent4_left",
+            "to": "vent4_top",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          }
+        ]
+      },
+      {
+        "id": "ventilacion_5",
+        "type": "hole",
+        "closed": true,
+        "elements": [
+          {
+            "type": "arc",
+            "from": "vent5_top",
+            "to": "vent5_right",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent5_right",
+            "to": "vent5_bottom",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent5_bottom",
+            "to": "vent5_left",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          },
+          {
+            "type": "arc",
+            "from": "vent5_left",
+            "to": "vent5_top",
+            "radius": "params.radio_ventilacion",
+            "clockwise": true
+          }
+        ]
+      }
+    ],
+
+    "extrusion": {
+      "height": "params.grosor",
+      "bevel": true,
+      "bevelThickness": 0.35,
+      "bevelSize": 0.35,
+      "bevelSegments": 3,
+      "curveSegments": 16
+    }
+  }
+}

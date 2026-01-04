@@ -7,16 +7,14 @@ import {
   GizmoViewport,
   ContactShadows,
   RoundedBox,
-  TransformControls,
-  Line
+  TransformControls
 } from "@react-three/drei";
-import { useState, Suspense, useMemo, useEffect, useRef } from "react";
+import { useState, Suspense, useEffect } from "react";
 import * as THREE from "three";
 import { STLLoader } from "three-stdlib";
 import { Button } from "@/components/ui/button";
-import { Loader2, Banana as BananaIcon, Ruler as RulerIcon, Trash2, Download, PenTool, MousePointer2 } from "lucide-react";
+import { Loader2, Banana as BananaIcon, Ruler as RulerIcon, Trash2, Download } from "lucide-react";
 import type { SelectedObject } from "@/types";
-import { toast } from "sonner";
 import { Banana } from "./components/Banana";
 import { exportToSTL } from "../export/export";
 
@@ -115,104 +113,16 @@ function ParametricModel({ data }: { data: any }) {
   );
 }
 
-// --- Herramientas de Edición de Nodos ---
-
-function NodeHandles({
-    points,
-    onUpdate
-}: {
-    points: [number, number][],
-    onUpdate: (newPoints: [number, number][]) => void
-}) {
-    const [activeIndex, setActiveIndex] = useState<number | null>(null);
-    const transformRef = useRef<any>(null);
-
-    const handleTransform = (e: any) => {
-        if (activeIndex === null) return;
-        const target = e.target.object;
-        const newPoints = [...points];
-        newPoints[activeIndex] = [target.position.x, -target.position.z];
-        onUpdate(newPoints);
-    };
-
-    const handleDelete = (e: any) => {
-        e.stopPropagation();
-        if (activeIndex === null) return;
-        if (points.length <= 3) {
-            toast.error("Una pieza debe tener al menos 3 puntos.");
-            return;
-        }
-        const newPoints = points.filter((_, i) => i !== activeIndex);
-        onUpdate(newPoints);
-        setActiveIndex(null);
-    };
-
-    // Crear línea de contorno
-    const linePoints = useMemo(() => {
-        const pts = points.map(p => new THREE.Vector3(p[0], 1, -p[1]));
-        return [...pts, pts[0]]; // Cerrar polígono
-    }, [points]);
-
-    return (
-        <group>
-            {/* Línea de contorno auxiliar */}
-            <Line points={linePoints} color="#fbbf24" lineWidth={1} dashed />
-
-            {points.map((p, i) => (
-                <mesh 
-                    key={`node-${i}`} 
-                    position={[p[0], 1, -p[1]]} 
-                    onClick={(e) => { e.stopPropagation(); setActiveIndex(i); }}
-                >
-                    <sphereGeometry args={[2]} />
-                    <meshBasicMaterial color={activeIndex === i ? "#f59e0b" : "#ffffff"} />
-                    
-                    {activeIndex === i && (
-                        <Html position={[0, 5, 0]} center>
-                            <Button 
-                                variant="destructive" 
-                                size="icon" 
-                                className="h-6 w-6 rounded-full shadow-xl animate-in zoom-in"
-                                onClick={handleDelete}
-                            >
-                                <Trash2 className="h-3 w-3" />
-                            </Button>
-                        </Html>
-                    )}
-                </mesh>
-            ))}
-            
-            {activeIndex !== null && (
-                <TransformControls 
-                    ref={transformRef}
-                    position={[points[activeIndex][0], 1, -points[activeIndex][1]]}
-                    mode="translate" 
-                    showY={false}
-                    onObjectChange={handleTransform}
-                >
-                    <mesh visible={false}>
-                        <sphereGeometry args={[2]} />
-                    </mesh>
-                </TransformControls>
-            )}
-        </group>
-    );
-}
-
-function ClickHandler({ onPoint, onAddNode }: { onPoint: (p: THREE.Vector3) => void, onAddNode?: (p: THREE.Vector3) => void }) {
+function ClickHandler({ onPoint }: { onPoint: (p: THREE.Vector3) => void }) {
     const handleClick = (e: any) => {
         if (e.point) onPoint(e.point.clone());
     };
-    const handleDoubleClick = (e: any) => {
-        if (onAddNode && e.point) onAddNode(e.point.clone());
-    };
     return (
-        <mesh 
-            rotation={[-Math.PI / 2, 0, 0]} 
-            position={[0, -0.1, 0]} 
+        <mesh
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[0, -0.1, 0]}
             onClick={handleClick}
-            onPointerMissed={() => {}} // Prevenir deselección accidental
-            onDoubleClick={handleDoubleClick}
+            onPointerMissed={() => {}}
             visible={false}
         >
             <planeGeometry args={[2000, 2000]} />
@@ -222,16 +132,13 @@ function ClickHandler({ onPoint, onAddNode }: { onPoint: (p: THREE.Vector3) => v
 
 export function Viewer({
     selectedObject,
-    parametricData,
-    onUpdateShape
+    parametricData
 }: {
     selectedObject: SelectedObject,
-    parametricData?: any,
-    onUpdateShape?: (newShape: any) => void
+    parametricData?: any
 }) {
   const [showBanana, setShowBanana] = useState(false);
   const [isRulerActive, setIsRulerActive] = useState(false);
-  const [isEditNodesActive, setIsEditNodesActive] = useState(false);
   const [rulerPoints, setRulerPoints] = useState<THREE.Vector3[]>([]);
   
   const isJson = selectedObject?.fileType === 'json' || selectedObject?.name.toLowerCase().endsWith(".json");
@@ -243,19 +150,6 @@ export function Viewer({
   const handleNewPoint = (p: THREE.Vector3) => {
       if (!isRulerActive) return;
       setRulerPoints(prev => prev.length >= 2 ? [p] : [...prev, p]);
-  };
-
-  const handleAddNode = (p: THREE.Vector3) => {
-      if (!isEditNodesActive || !parametricData?.shape?.points) return;
-      const newPoints: [number, number][] = [...parametricData.shape.points, [p.x, -p.z]];
-      handleNodesUpdate(newPoints);
-      toast.success("Nuevo nodo añadido");
-  };
-
-  const handleNodesUpdate = (newPoints: [number, number][]) => {
-      if (onUpdateShape) {
-          onUpdateShape({ ...parametricData.shape, points: newPoints });
-      }
   };
 
   return (
@@ -279,18 +173,6 @@ export function Viewer({
 
         <div className="h-px bg-border my-1" />
 
-        {isJson && (
-            <Button 
-                variant={isEditNodesActive ? "default" : "ghost"} 
-                size="icon" 
-                className={`h-8 w-8 ${isEditNodesActive ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
-                onClick={() => setIsEditNodesActive(!isEditNodesActive)} 
-                title="Editar Nodos"
-            >
-                {isEditNodesActive ? <MousePointer2 className="h-4 w-4" /> : <PenTool className="h-4 w-4" />}
-            </Button>
-        )}
-
         <Button variant={isRulerActive ? "destructive" : "ghost"} size="icon" className="h-8 w-8" onClick={() => { setIsRulerActive(!isRulerActive); if (!isRulerActive) setRulerPoints([]); }} title="Regla">
            <RulerIcon className="h-4 w-4" />
         </Button>
@@ -307,12 +189,6 @@ export function Viewer({
       </div>
 
       {isRulerActive && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-red-500 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse">Haz clic en dos puntos</div>}
-      {isEditNodesActive && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-amber-500 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg flex flex-col items-center">
-              <span>MODO EDICIÓN ACTIVO</span>
-              <span className="text-[10px] opacity-80 uppercase tracking-tighter">Doble clic para añadir nodo | Clic en nodo para mover/borrar</span>
-          </div>
-      )}
 
       <Canvas shadows dpr={[1, 2]} camera={{ position: [150, 150, 150], fov: 45, near: 0.1, far: 50000 }}>
         <ExportManager />
@@ -326,12 +202,8 @@ export function Viewer({
             )}
         </Suspense>
 
-        {isEditNodesActive && isJson && parametricData?.shape?.points && (
-            <NodeHandles points={parametricData.shape.points} onUpdate={handleNodesUpdate} />
-        )}
-
         <MeasurementRuler points={rulerPoints} />
-        <ClickHandler onPoint={handleNewPoint} onAddNode={handleAddNode} />
+        <ClickHandler onPoint={handleNewPoint} />
 
         {showBanana && (
           <TransformControls mode="translate" showY={false} showZ={false} size={0.5}>
@@ -340,7 +212,7 @@ export function Viewer({
         )}
 
         <ContactShadows position={[0, -0.1, 0]} opacity={0.4} scale={500} blur={2.5} far={100} />
-        <OrbitControls makeDefault minDistance={10} maxDistance={5000} target={[0, 0, 0]} enabled={!isRulerActive && !isEditNodesActive} />
+        <OrbitControls makeDefault minDistance={10} maxDistance={5000} target={[0, 0, 0]} enabled={!isRulerActive} />
         <GizmoHelper alignment="bottom-right" margin={[80, 80]}><GizmoViewport axisColors={['#9d4b4b', '#2f7f4f', '#3b5b9d']} labelColor="white" /></GizmoHelper>
       </Canvas>
     </div>

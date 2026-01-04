@@ -1,97 +1,175 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { toast } from "sonner";
+import { nanoid } from "nanoid";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Label } from "@/components/ui/label";
+import { Plus, Edit2, Trash2, FileJson, ArrowLeft, Copy } from "lucide-react";
+import { db, type ITemplate } from "@/app/db";
+import { TemplateEditor } from "@/features/admin/TemplateEditor";
+import { Badge } from "@/components/ui/badge";
 
-type SystemObject = { id: number; name: string; category: string; description: string; };
-
-const systemObjects: SystemObject[] = [];
+interface ManagedTemplate extends ITemplate {
+  isSystem?: boolean;
+}
 
 export function ObjectLibrary() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [editingTemplate, setEditingTemplate] = useState<ManagedTemplate | null | undefined>(undefined);
+  const [systemTemplates, setSystemTemplates] = useState<ManagedTemplate[]>([]);
+  const customTemplates = useLiveQuery(() => db.templates.toArray()) ?? [];
 
-  const categories = useMemo(() => {
-    const uniqueCategories = Array.from(new Set(systemObjects.map(obj => obj.category)));
-    return ["all", ...uniqueCategories];
+  // Cargar plantillas del sistema para visualización
+  useEffect(() => {
+    fetch(`${import.meta.env.BASE_URL}templates/index.json`)
+      .then(res => res.json())
+      .then(async (data) => {
+          // Para cada entrada en el index, cargamos su contenido JSON real
+          const fullTemplates = await Promise.all(data.map(async (item: any) => {
+              const res = await fetch(`${import.meta.env.BASE_URL}${item.file.replace(/^\//, '')}`);
+              const content = await res.json();
+              return {
+                  id: item.id,
+                  name: item.name,
+                  category: item.category,
+                  description: item.description,
+                  content: content,
+                  createdAt: new Date(),
+                  isSystem: true // Marca temporal
+              };
+          }));
+          setSystemTemplates(fullTemplates as ManagedTemplate[]);
+      });
   }, []);
 
-  const filteredObjects = useMemo(() => {
-    let filtered = systemObjects;
+  const allTemplates = useMemo((): ManagedTemplate[] => {
+      return [
+          ...systemTemplates,
+          ...customTemplates.map(t => ({ ...t, isSystem: false }))
+      ];
+  }, [systemTemplates, customTemplates]);
 
-    if (filterCategory !== "all") {
-      filtered = filtered.filter(obj => obj.category === filterCategory);
+  const handleDelete = async (id: string) => {
+    if (confirm("¿Estás seguro de eliminar esta plantilla personalizada?")) {
+      try {
+        await db.templates.delete(id);
+        toast.success("Plantilla eliminada");
+      } catch (error) {
+        toast.error("Error al eliminar");
+      }
     }
-
-    if (searchTerm) {
-      filtered = filtered.filter(obj => 
-        obj.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        obj.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    return filtered;
-  }, [searchTerm, filterCategory]);
-
-  const handleAdd = (objectName: string) => {
-    alert(`'${objectName}' se añadiría al proyecto actual.`);
   };
+
+  const handleDuplicate = async (tpl: any) => {
+      try {
+          const newTpl: ITemplate = {
+              id: nanoid(),
+              name: `${tpl.name} (Copia)`,
+              category: tpl.category,
+              description: tpl.description,
+              content: JSON.parse(JSON.stringify(tpl.content)), // Clonación profunda
+              createdAt: new Date()
+          };
+          await db.templates.add(newTpl);
+          toast.success("Copia creada exitosamente");
+      } catch (error) {
+          toast.error("Error al duplicar");
+      }
+  };
+
+  if (editingTemplate !== undefined) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
+        <Button variant="ghost" size="sm" onClick={() => setEditingTemplate(undefined)} className="gap-2 mb-4">
+          <ArrowLeft className="h-4 w-4" /> Volver a la Librería
+        </Button>
+        <TemplateEditor
+          template={editingTemplate}
+          isSystemTemplate={editingTemplate?.isSystem || false}
+          onSaved={() => setEditingTemplate(undefined)}
+          onCancel={() => setEditingTemplate(undefined)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
-      <h1 className="text-2xl font-bold mb-4">Librería de Plantillas y Modelos</h1>
-      <p className="text-muted-foreground mb-6">
-        Explora y reutiliza plantillas de férulas y modelos de referencia.
-      </p>
-
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <Label htmlFor="search-models" className="sr-only">Buscar modelos</Label>
-          <Input
-            id="search-models"
-            placeholder="Buscar por nombre o descripción..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
-          />
-        </div>
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <Label className="sr-only">Filtrar por categoría</Label>
-          <ToggleGroup
-            type="single"
-            value={filterCategory}
-            onValueChange={(value) => setFilterCategory(value || "all")}
-            className="justify-start sm:justify-end"
-          >
-            {categories.map(cat => (
-              <ToggleGroupItem key={cat} value={cat} className="capitalize text-sm h-9">
-                {cat === "all" ? "Todo" : cat}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+          <h1 className="text-2xl font-bold">Librería de Plantillas</h1>
+          <p className="text-sm text-muted-foreground">Explora plantillas del sistema o crea tus propias férulas personalizadas.</p>
         </div>
+        <Button onClick={() => setEditingTemplate(null)} className="gap-2">
+          <Plus className="h-4 w-4" /> Nueva Plantilla
+        </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto grid gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {filteredObjects.length > 0 ? (
-          filteredObjects.map((obj) => (
-            <Card key={obj.id}>
-              <CardHeader>
-                <CardTitle className="text-base">{obj.name}</CardTitle>
-                <CardDescription>{obj.category}</CardDescription>
+      <div className="flex-1 overflow-y-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {allTemplates.length === 0 && (
+            <div className="col-span-full py-12 text-center border-2 border-dashed rounded-lg">
+              <FileJson className="h-12 w-12 mx-auto text-muted-foreground opacity-20 mb-4" />
+              <p className="text-muted-foreground">No hay plantillas disponibles.</p>
+            </div>
+          )}
+
+          {allTemplates.map(tpl => (
+            <Card key={tpl.id} className={tpl.isSystem ? "bg-muted/20 border-dashed overflow-hidden" : "hover:border-primary/50 transition-colors overflow-hidden"}>
+              {/* Espacio para la miniatura */}
+              <div className="aspect-video w-full bg-muted relative group">
+                  {tpl.thumbnail ? (
+                      <img src={tpl.thumbnail} alt={tpl.name} className="w-full h-full object-cover" />
+                  ) : (
+                      <div className="w-full h-full flex items-center justify-center opacity-20">
+                          <FileJson className="h-12 w-12" />
+                      </div>
+                  )}
+                  {tpl.isSystem && (
+                      <div className="absolute inset-0 bg-black/5 flex items-center justify-center">
+                           <Badge variant="secondary" className="bg-background/80 backdrop-blur">Solo Lectura</Badge>
+                      </div>
+                  )}
+              </div>
+
+              <CardHeader className="pb-3 pt-4">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-base truncate max-w-[150px]">{tpl.name}</CardTitle>
+                      <Badge variant={tpl.isSystem ? "outline" : "default"} className="text-[8px] uppercase px-1 h-4">
+                          {tpl.isSystem ? "Sistema" : "Mía"}
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs">{tpl.category}</CardDescription>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDuplicate(tpl)} title="Duplicar">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingTemplate(tpl)} title={tpl.isSystem ? "Editar (creará una copia)" : "Editar"}>
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    {!tpl.isSystem && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(tpl.id)} title="Eliminar">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground mb-3 truncate">{obj.description}</p>
-                <Button className="w-full" size="sm" onClick={() => handleAdd(obj.name)}>
-                  Añadir al Proyecto
-                </Button>
+                <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2.5rem]">
+                  {tpl.description || "Sin descripción."}
+                </p>
+                <div className="mt-4 flex items-center justify-between text-[10px] text-muted-foreground uppercase font-bold tracking-widest border-t pt-3">
+                  <span>Calculated V1</span>
+                  <span>{new Date(tpl.createdAt).toLocaleDateString()}</span>
+                </div>
               </CardContent>
             </Card>
-          ))
-        ) : (
-          <p className="col-span-full text-center text-muted-foreground">No se encontraron modelos.</p>
-        )}
+          ))}
+        </div>
       </div>
     </div>
   );
