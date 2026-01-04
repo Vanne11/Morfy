@@ -34,15 +34,38 @@ export function PropertiesPanel({ selectedObject, parametricData, onUpdateParams
 
       // 1. Actualizar los valores de la UI
       const newUIValues = { ...uiValues, [controlId]: value };
-      
-      // 2. Recalcular los parámetros técnicos (la "magia")
+
+      // 2. Recalcular los parámetros técnicos con el nuevo sistema de impacts
       const newParams = { ...params };
-      
+
       uiControls.forEach((control: any) => {
           const currentVal = newUIValues[control.id] ?? control.default;
           if (control.impacts) {
-              Object.entries(control.impacts).forEach(([targetParam, weight]: [string, any]) => {
-                  newParams[targetParam] = currentVal * weight;
+              Object.entries(control.impacts).forEach(([targetParam, impactConfig]: [string, any]) => {
+                  // Nuevo sistema: impacts puede ser objeto con { operation, value }
+                  // o número directo (legacy: weight)
+                  if (typeof impactConfig === 'object' && impactConfig.operation) {
+                      switch (impactConfig.operation) {
+                          case 'set':
+                              // Asignar directamente el valor del slider
+                              newParams[targetParam] = currentVal;
+                              break;
+                          case 'multiply':
+                              // Multiplicar slider por valor base
+                              newParams[targetParam] = currentVal * impactConfig.value;
+                              break;
+                          case 'add':
+                              // Sumar slider a valor base
+                              newParams[targetParam] = (params[targetParam] || 0) + currentVal;
+                              break;
+                          default:
+                              console.warn(`Operación desconocida: ${impactConfig.operation}`);
+                              newParams[targetParam] = currentVal * (impactConfig.value || 1);
+                      }
+                  } else {
+                      // Legacy: es un número directo (weight)
+                      newParams[targetParam] = currentVal * impactConfig;
+                  }
               });
           }
       });
@@ -82,11 +105,17 @@ export function PropertiesPanel({ selectedObject, parametricData, onUpdateParams
                 <Separator />
                 
                 <div className="bg-primary/5 p-3 rounded-lg border border-primary/10">
-                    <h4 className="text-[10px] font-bold uppercase text-primary mb-2 tracking-widest">Dimensiones Resultantes (Impresión)</h4>
-                    <div className="grid grid-cols-3 gap-2 text-[10px] font-mono">
-                        <div className="flex flex-col"><span className="text-muted-foreground">Largo:</span> <span>{params.length?.toFixed(1)}mm</span></div>
-                        <div className="flex flex-col"><span className="text-muted-foreground">Ancho:</span> <span>{params.width?.toFixed(1)}mm</span></div>
-                        <div className="flex flex-col"><span className="text-muted-foreground">Grosor:</span> <span>{params.thickness?.toFixed(1)}mm</span></div>
+                    <h4 className="text-[10px] font-bold uppercase text-primary mb-2 tracking-widest">Parámetros Técnicos</h4>
+                    <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                        {Object.entries(params)
+                            .filter(([key, value]) => typeof value === 'number' && key !== 'color')
+                            .map(([key, value]) => (
+                                <div key={key} className="flex flex-col">
+                                    <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                                    <span>{(value as number).toFixed(1)}</span>
+                                </div>
+                            ))
+                        }
                     </div>
                 </div>
             </div>

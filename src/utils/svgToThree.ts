@@ -5,8 +5,10 @@
  * a geometría 3D de Three.js mediante extrusión.
  */
 
-import { Shape, Vector2, ExtrudeGeometry, ExtrudeGeometryOptions } from 'three';
-import { evaluateExpression, ParamContext } from './paramEvaluator';
+import { Shape, ExtrudeGeometry } from 'three';
+import type { ExtrudeGeometryOptions } from 'three';
+import { evaluateExpression } from './paramEvaluator';
+import type { ParamContext } from './paramEvaluator';
 
 /**
  * Tipos para la definición de geometría SVG paramétrica

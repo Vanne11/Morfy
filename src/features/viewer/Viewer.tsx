@@ -6,8 +6,8 @@ import {
   GizmoHelper,
   GizmoViewport,
   ContactShadows,
-  RoundedBox,
-  TransformControls
+  TransformControls,
+  Line
 } from "@react-three/drei";
 import { useState, Suspense, useEffect } from "react";
 import * as THREE from "three";
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Banana as BananaIcon, Ruler as RulerIcon, Trash2, Download } from "lucide-react";
 import type { SelectedObject } from "@/types";
 import { Banana } from "./components/Banana";
+import { SVGParametricModel } from "./components/SVGParametricModel";
 import { exportToSTL } from "../export/export";
 
 // --- Gestor de Exportación ---
@@ -78,38 +79,24 @@ function LoadedModel({ url }: { url: string }) {
 }
 
 function ParametricModel({ data }: { data: any }) {
-  if (!data || !data.params) {
+  if (!data || !data.params || !data.geometry) {
       return (
         <group position={[0, 10, 0]}>
             <mesh>
                 <sphereGeometry args={[10, 16, 16]} />
                 <meshBasicMaterial color="red" wireframe />
             </mesh>
-            <Html center><span className="bg-black/80 text-white p-1 text-xs rounded">Sin Parámetros</span></Html>
+            <Html center><span className="bg-black/80 text-white p-1 text-xs rounded">Template Inválido</span></Html>
         </group>
       );
   }
 
-  const { length = 60, width = 20, thickness = 3, color = "#3b82f6" } = data.params;
-  const l = Number(length);
-  const w = Number(width);
-  const t = Number(thickness);
-
   return (
-    <group>
-        <RoundedBox 
-          key={`${w}-${t}-${l}`} 
-          args={[w, t, l]} 
-          radius={1} 
-          smoothness={4}
-          castShadow 
-          receiveShadow
-          position={[0, t / 2, 0]}
-        >
-          <meshStandardMaterial color={color} roughness={0.5} metalness={0.1} />
-        </RoundedBox>
-        <axesHelper args={[15]} position={[0, 0.1, 0]} />
-    </group>
+    <SVGParametricModel
+      geometry={data.geometry}
+      params={data.params}
+      color={data.params.color}
+    />
   );
 }
 
