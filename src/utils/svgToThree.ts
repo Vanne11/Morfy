@@ -471,11 +471,24 @@ export function generateSVGPreview(
   const evaluatedVertices = evaluateVertices(geometryDef.vertices, params);
   const bounds = calculateBounds2D(geometryDef, params);
 
-  const width = bounds.maxX - bounds.minX;
-  const height = bounds.maxY - bounds.minY;
-  const padding = 10;
+  let width = bounds.maxX - bounds.minX;
+  let height = bounds.maxY - bounds.minY;
+
+  // Si es muy pequeño, establecer un mínimo
+  if (width < 1) width = 10;
+  if (height < 1) height = 10;
+
+  // Padding proporcional al tamaño
+  const padding = Math.max(width, height) * 0.15;
+
+  // Calcular escala del stroke y markers según el tamaño
+  const scale = Math.min(width, height);
+  const strokeWidth = Math.max(0.1, scale * 0.02);
+  const markerRadius = Math.max(0.2, scale * 0.05);
+  const fontSize = Math.max(0.5, scale * 0.15);
 
   let svgPaths = '';
+  let svgVertexMarkers = '';
 
   // Generar paths para cada contorno
   for (const contour of geometryDef.contours) {
@@ -517,17 +530,29 @@ export function generateSVGPreview(
       pathData += 'Z';
     }
 
-    const strokeColor = contour.type === 'outer' ? 'blue' : 'red';
-    const fillColor = contour.type === 'outer' ? 'lightblue' : 'white';
+    const strokeColor = contour.type === 'outer' ? '#3b82f6' : '#ef4444';
+    const fillColor = contour.type === 'outer' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)';
 
-    svgPaths += `<path d="${pathData}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="1" />\n`;
+    svgPaths += `<path d="${pathData}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" />\n`;
+  }
+
+  // AGREGAR MARCADORES DE VÉRTICES CON NÚMEROS
+  for (const [vertexId, vertex] of Object.entries(evaluatedVertices)) {
+    svgVertexMarkers += `
+      <circle cx="${vertex.x}" cy="${vertex.y}" r="${markerRadius}" fill="#10b981" stroke="white" stroke-width="${strokeWidth * 0.5}" />
+      <text x="${vertex.x + markerRadius * 2}" y="${vertex.y - markerRadius}"
+            font-size="${fontSize}" font-weight="bold" fill="#10b981"
+            font-family="monospace">${vertexId}</text>
+    `;
   }
 
   return `
-<svg width="${width + padding * 2}" height="${height + padding * 2}"
+<svg width="100%" height="100%"
      viewBox="${bounds.minX - padding} ${bounds.minY - padding} ${width + padding * 2} ${height + padding * 2}"
-     xmlns="http://www.w3.org/2000/svg">
+     xmlns="http://www.w3.org/2000/svg"
+     preserveAspectRatio="xMidYMid meet">
   ${svgPaths}
+  ${svgVertexMarkers}
 </svg>
   `.trim();
 }
