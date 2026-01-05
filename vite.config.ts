@@ -18,7 +18,12 @@ export default defineConfig(() => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              if (id.includes('three') || id.includes('@react-three')) {
+              // React y sus dependencias primero (incluyendo react-three)
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || id.includes('@react-three') || id.includes('scheduler')) {
+                return 'react-vendor';
+              }
+              // Three.js puro (sin react-three)
+              if (id.includes('three') && !id.includes('@react-three')) {
                 return 'three-engine';
               }
               if (id.includes('fabric')) {
@@ -26,9 +31,6 @@ export default defineConfig(() => {
               }
               if (id.includes('@radix-ui') || id.includes('lucide')) {
                 return 'ui-libs';
-              }
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-                return 'react-vendor';
               }
               return 'vendor-utils';
             }
