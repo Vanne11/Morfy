@@ -14,7 +14,7 @@ import { Info, Code, Camera, Plus, Trash2, AlertCircle, CheckCircle2, Shapes, Ch
 import { SVGParametricModel } from "@/features/viewer/components/SVGParametricModel";
 import { validateGeometryDefinition, generateSVGPreview } from "@/utils/svgToThree";
 import { evaluateExpression } from "@/utils/paramEvaluator";
-import { fabric } from "fabric";
+import * as fabric from "fabric";
 
 interface TemplateEditorProps {
   template: ITemplate | null;
