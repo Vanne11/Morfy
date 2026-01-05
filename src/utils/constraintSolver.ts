@@ -51,6 +51,7 @@ export interface Dimension {
   label?: string;         // Nombre del parámetro (si se convierte en parámetro editable)
   isParameter: boolean;   // Si aparece en el panel de parámetros
   offset?: { x: number; y: number }; // Posición de la cota en el canvas
+  inverted?: boolean;     // Para ángulos: si true, usa el ángulo suplementario (360° - ángulo)
 }
 
 // ============================================================================
@@ -78,6 +79,75 @@ export function angleBetweenLines(
   while (diff < -Math.PI) diff += 2 * Math.PI;
 
   return diff;
+}
+
+/**
+ * Calcula el área signada de un polígono usando la fórmula del shoelace
+ * Área positiva = sentido antihorario (CCW)
+ * Área negativa = sentido horario (CW)
+ */
+export function signedArea(vertices: Vertex2D[]): number {
+  let area = 0;
+  for (let i = 0; i < vertices.length; i++) {
+    const j = (i + 1) % vertices.length;
+    area += vertices[i].x * vertices[j].y;
+    area -= vertices[j].x * vertices[i].y;
+  }
+  return area / 2;
+}
+
+/**
+ * Determina si un polígono está orientado en sentido antihorario (CCW)
+ */
+export function isCounterClockwise(vertices: Vertex2D[]): boolean {
+  return signedArea(vertices) > 0;
+}
+
+/**
+ * Calcula el ángulo interno en un vértice de un polígono
+ * @param prev Vértice anterior
+ * @param current Vértice actual (donde se calcula el ángulo)
+ * @param next Vértice siguiente
+ * @param isCCW Si el polígono está en sentido antihorario
+ * @returns Ángulo interno en grados (0-360)
+ */
+export function calculateInternalAngle(
+  prev: Vertex2D,
+  current: Vertex2D,
+  next: Vertex2D,
+  isCCW: boolean
+): number {
+  // Vectores desde el vértice actual hacia los adyacentes
+  const v1 = { x: prev.x - current.x, y: prev.y - current.y };
+  const v2 = { x: next.x - current.x, y: next.y - current.y };
+
+  // Producto cruzado (determina orientación)
+  const cross = v1.x * v2.y - v1.y * v2.x;
+
+  // Producto punto (para calcular el ángulo)
+  const dot = v1.x * v2.x + v1.y * v2.y;
+
+  // Magnitudes de los vectores
+  const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
+  const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+
+  if (mag1 === 0 || mag2 === 0) return 0;
+
+  // Ángulo entre vectores usando atan2
+  let angleRad = Math.atan2(cross, dot);
+
+  // Ajustar según la orientación del polígono
+  if (isCCW) {
+    // Para CCW, ángulo interno es el ángulo en sentido antihorario
+    if (angleRad < 0) angleRad += 2 * Math.PI;
+  } else {
+    // Para CW, ángulo interno es el ángulo en sentido horario
+    if (angleRad > 0) angleRad = 2 * Math.PI - angleRad;
+    else angleRad = -angleRad;
+  }
+
+  // Convertir a grados
+  return (angleRad * 180) / Math.PI;
 }
 
 export function midpoint(p1: Vertex2D, p2: Vertex2D): Vertex2D {
@@ -267,6 +337,26 @@ export class ConstraintSolver {
       }
     }
 
+    if (dimension.type === 'angular' && dimension.elements.lines && dimension.elements.lines.length === 2) {
+      const [line1, line2] = dimension.elements.lines;
+
+      // Helper function para verificar si un nodo está fijo
+      const isNodeFixed = (nodeId: string) => constraints.some(
+        c => c.type === 'fixed' && c.nodes.includes(nodeId) && c.enabled
+      );
+
+      // Verificar si ambas líneas están completamente fijas
+      const line1Fixed = isNodeFixed(line1.from) && isNodeFixed(line1.to);
+      const line2Fixed = isNodeFixed(line2.from) && isNodeFixed(line2.to);
+
+      if (line1Fixed && line2Fixed) {
+        return {
+          canApply: false,
+          reason: 'No se puede cambiar el ángulo: ambas líneas están fijas'
+        };
+      }
+    }
+
     return { canApply: true };
   }
 
@@ -396,9 +486,120 @@ export class ConstraintSolver {
     }
 
     if (dimension.type === 'angular' && dimension.elements.lines && dimension.elements.lines.length === 2) {
-      // Implementación de dimensión angular
-      // (requiere rotación de una línea para mantener el ángulo)
-      return { updates: {}, success: false, reason: 'Dimensión angular en desarrollo' };
+      const [line1, line2] = dimension.elements.lines;
+
+      // Paso 1: Extraer posiciones de vértices
+      const posA1 = vertices[line1.from];
+      const posA2 = vertices[line1.to];
+      const posB1 = vertices[line2.from];
+      const posB2 = vertices[line2.to];
+
+      if (!posA1 || !posA2 || !posB1 || !posB2) {
+        return { updates: {}, success: false, reason: 'Vértices no encontrados' };
+      }
+
+      // Paso 2: Encontrar punto de intersección (vértice común)
+      let pivotId: string | null = null;
+      let pivot: Vertex2D | null = null;
+      let other1: Vertex2D | null = null; // Punto extremo de línea 1
+      let other2: Vertex2D | null = null; // Punto extremo de línea 2
+      let p1Id: string | null = null;
+      let p2Id: string | null = null;
+
+      if (line1.from === line2.from) { pivotId = line1.from; pivot = posA1; p1Id = line1.to; other1 = posA2; p2Id = line2.to; other2 = posB2; }
+      else if (line1.from === line2.to) { pivotId = line1.from; pivot = posA1; p1Id = line1.to; other1 = posA2; p2Id = line2.from; other2 = posB1; }
+      else if (line1.to === line2.from) { pivotId = line1.to; pivot = posA2; p1Id = line1.from; other1 = posA1; p2Id = line2.to; other2 = posB2; }
+      else if (line1.to === line2.to) { pivotId = line1.to; pivot = posA2; p1Id = line1.from; other1 = posA1; p2Id = line2.from; other2 = posB1; }
+
+      if (!pivotId || !pivot || !other1 || !other2) {
+        return {
+          updates: {},
+          success: false,
+          reason: 'Las líneas no comparten un vértice común'
+        };
+      }
+
+      // Paso 3: Calcular ángulos absolutos de los vectores desde el pivote
+      const ang1 = Math.atan2(other1.y - pivot.y, other1.x - pivot.x);
+      const ang2 = Math.atan2(other2.y - pivot.y, other2.x - pivot.x);
+
+      // Calcular diferencia angular normalizada (-PI a PI)
+      let diffRad = ang2 - ang1;
+      while (diffRad > Math.PI) diffRad -= 2 * Math.PI;
+      while (diffRad < -Math.PI) diffRad += 2 * Math.PI;
+
+      // El ángulo actual (interno) es el valor absoluto
+      // const currentInnerDeg = Math.abs(diffRad * 180 / Math.PI);
+
+      // Paso 4: Determinar el ángulo objetivo INTERNO (0-180)
+      // Si la dimensión está invertida, el usuario quiere controlar el ángulo reflex (ej: 270°)
+      // Por tanto, el ángulo interno objetivo debe ser 360 - target
+      let targetInnerDeg = targetValue;
+      if (dimension.inverted) {
+        targetInnerDeg = 360 - targetValue;
+      }
+      
+      // Validar rango
+      if (targetInnerDeg < 0) targetInnerDeg = 0;
+      // if (targetInnerDeg > 180) targetInnerDeg = 180; // Permitir > 180 si el usuario lo fuerza
+
+      // Paso 5: Calcular rotación necesaria
+      // Queremos que el nuevo ángulo relativo (abs(diff)) sea targetInnerDeg.
+      // Respetamos el signo original de la apertura para no "voltear" la geometría innecesariamente
+      // Si diffRad es 0, asumimos positivo
+      const sign = diffRad >= 0 ? 1 : -1;
+      const targetDiffRad = sign * (targetInnerDeg * Math.PI / 180);
+      
+      const rotationNeededRad = targetDiffRad - diffRad;
+
+      // Helper para verificar si un nodo está fijo
+      const isNodeFixed = (nodeId: string) => constraints.some(
+        c => c.type === 'fixed' && c.nodes.includes(nodeId) && c.enabled
+      );
+
+      const line1Fixed = isNodeFixed(line1.from) && isNodeFixed(line1.to);
+      const line2Fixed = isNodeFixed(line2.from) && isNodeFixed(line2.to);
+
+      // Helper para rotar un punto alrededor de un pivote
+      const rotatePoint = (
+        point: Vertex2D,
+        pivot: Vertex2D,
+        angleRad: number
+      ): Vertex2D => {
+        const cos = Math.cos(angleRad);
+        const sin = Math.sin(angleRad);
+        const dx = point.x - pivot.x;
+        const dy = point.y - pivot.y;
+
+        return {
+          x: pivot.x + dx * cos - dy * sin,
+          y: pivot.y + dx * sin + dy * cos
+        };
+      };
+
+      // Paso 6: Aplicar rotación
+      if (line1Fixed && !line2Fixed) {
+        // Línea 1 fija, rotar línea 2
+        // Si diff = ang2 - ang1, entonces ang2 = ang1 + diff
+        // Queremos nuevo ang2' = ang1 + targetDiff
+        // Delta = targetDiff - diff (rotationNeededRad)
+        // Rotamos Line2 por rotationNeededRad
+        if (p2Id && p2Id !== pivotId) updates[p2Id] = rotatePoint(other2, pivot, rotationNeededRad);
+      } else if (!line1Fixed && line2Fixed) {
+        // Línea 2 fija, rotar línea 1
+        // Queremos nuevo ang1'
+        // diff = ang2 - ang1 => ang1 = ang2 - diff
+        // Nuevo ang1' = ang2 - targetDiff
+        // Delta1 = (ang2 - targetDiff) - (ang2 - diff) = diff - targetDiff = -rotationNeededRad
+        if (p1Id && p1Id !== pivotId) updates[p1Id] = rotatePoint(other1, pivot, -rotationNeededRad);
+      } else if (!line1Fixed && !line2Fixed) {
+        // Ambas libres, rotar simétricamente
+        const halfRot = rotationNeededRad / 2;
+        if (p2Id && p2Id !== pivotId) updates[p2Id] = rotatePoint(other2, pivot, halfRot);
+        if (p1Id && p1Id !== pivotId) updates[p1Id] = rotatePoint(other1, pivot, -halfRot);
+      }
+
+      return { updates, success: true };
     }
 
     return { updates: {}, success: false, reason: 'Tipo de dimensión no soportado' };
@@ -437,12 +638,40 @@ export class ConstraintSolver {
 
       if (!posA1 || !posA2 || !posB1 || !posB2) return 0;
 
-      const ang = angleBetweenLines(
-        { from: posA1, to: posA2 },
-        { from: posB1, to: posB2 }
-      );
+      // Determinar pivote y otros puntos
+      let pivot: Vertex2D | null = null;
+      let other1: Vertex2D | null = null;
+      let other2: Vertex2D | null = null;
 
-      return (ang * 180) / Math.PI; // Convertir a grados
+      if (line1.from === line2.from) { pivot = posA1; other1 = posA2; other2 = posB2; }
+      else if (line1.from === line2.to) { pivot = posA1; other1 = posA2; other2 = posB1; }
+      else if (line1.to === line2.from) { pivot = posA2; other1 = posA1; other2 = posB2; }
+      else if (line1.to === line2.to) { pivot = posA2; other1 = posA1; other2 = posB1; }
+
+      if (pivot && other1 && other2) {
+        // Calcular vectores desde el pivote
+        const v1 = { x: other1.x - pivot.x, y: other1.y - pivot.y };
+        const v2 = { x: other2.x - pivot.x, y: other2.y - pivot.y };
+
+        const mag1 = Math.sqrt(v1.x*v1.x + v1.y*v1.y);
+        const mag2 = Math.sqrt(v2.x*v2.x + v2.y*v2.y);
+
+        if (mag1 === 0 || mag2 === 0) return 0;
+
+        const dot = v1.x * v2.x + v1.y * v2.y;
+        // Clamp para evitar errores de coma flotante fuera de [-1, 1]
+        const cosTheta = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
+        
+        let angleDeg = Math.acos(cosTheta) * 180 / Math.PI;
+
+        if (dimension.inverted) {
+          angleDeg = 360 - angleDeg;
+        }
+
+        return angleDeg;
+      }
+      
+      return 0;
     }
 
     return 0;
