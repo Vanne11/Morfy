@@ -32,7 +32,9 @@ function DimensionInput({ dimension, vertices, onUpdate }: DimensionInputProps) 
 
   // Actualizar el valor local si la dimensión cambia externamente
   useEffect(() => {
-    setLocalValue((typeof dimension.value === 'number' ? dimension.value : 0).toString());
+    if (typeof dimension.value === 'number') {
+      setLocalValue(dimension.value.toString());
+    }
   }, [dimension.value]);
 
   const currentValue = constraintSolver.calculateDimensionValue(dimension, vertices);
@@ -50,31 +52,43 @@ function DimensionInput({ dimension, vertices, onUpdate }: DimensionInputProps) 
     }
   };
 
+  const isParameter = typeof dimension.value === 'string';
+  const targetDisplay = isParameter
+    ? (dimension.label ? `Parámetro: ${dimension.label}` : dimension.value)
+    : `${(dimension.value as number).toFixed(1)}cm`;
+
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-[9px] text-muted-foreground">
         <span>Actual: {currentValue.toFixed(1)}cm</span>
-        <span>Objetivo: {typeof dimension.value === 'number' ? dimension.value.toFixed(1) : 0}cm</span>
+        <span>Objetivo: {targetDisplay}</span>
       </div>
-      <div className="flex gap-2">
-        <Input
-          type="number"
-          step="0.1"
-          value={localValue}
-          onChange={(e) => setLocalValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="h-7 text-xs font-mono"
-        />
-        <Button
-          onClick={handleApply}
-          size="sm"
-          variant="default"
-          className="h-7 px-2 text-xs"
-          title="Aplicar dimensión"
-        >
-          Aplicar
-        </Button>
-      </div>
+      
+      {isParameter ? (
+        <div className="text-[10px] text-primary font-mono italic bg-primary/10 p-1 rounded px-2">
+          Controlado por {dimension.label || 'parámetro'}
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            step="0.1"
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="h-7 text-xs font-mono"
+          />
+          <Button
+            onClick={handleApply}
+            size="sm"
+            variant="default"
+            className="h-7 px-2 text-xs"
+            title="Aplicar dimensión"
+          >
+            Aplicar
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

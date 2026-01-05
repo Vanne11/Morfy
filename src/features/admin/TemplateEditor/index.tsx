@@ -54,6 +54,12 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
   const [activeTool, setActiveTool] = useState<ToolType>('select');
   const [drawingMode, setDrawingMode] = useState<'new' | 'add_external' | 'add_hole' | null>(null);
   const [showModeSelectionModal, setShowModeSelectionModal] = useState(false);
+  const [paramCreationDialog, setParamCreationDialog] = useState<{ open: boolean; dimensionId: string | null; initialValue: number }>({
+    open: false,
+    dimensionId: null,
+    initialValue: 0
+  });
+  const [newParamName, setNewParamName] = useState("");
 
   useEffect(() => {
     if (template) {
@@ -428,11 +434,96 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
   };
 
   const handleToggleDimensionParameter = (id: string) => {
-    const updatedDimensions = dimensions.map(d =>
-      d.id === id ? { ...d, isParameter: !d.isParameter } : d
+    const dimension = dimensions.find(d => d.id === id);
+    if (!dimension) return;
+
+    if (dimension.isParameter) {
+      // TURN OFF
+      if (dimension.label && previewData.params && dimension.label in previewData.params) {
+        const newParams = { ...previewData.params };
+        delete newParams[dimension.label];
+        
+        // Restore dimension value to number
+        const numericValue = constraintSolver.calculateDimensionValue(
+          dimension, 
+          Object.fromEntries(
+            Object.entries(previewData.geometry.vertices).map(([vid, v]: [string, any]) => [
+              vid,
+              {
+                x: evaluateExpression(v.x, previewData.params),
+                y: evaluateExpression(v.y, previewData.params)
+              }
+            ])
+          )
+        );
+
+        const updated = {
+          ...previewData,
+          params: newParams,
+          geometry: {
+            ...previewData.geometry,
+            dimensions: dimensions.map(d => d.id === id ? { ...d, isParameter: false, value: Number(numericValue.toFixed(1)), label: undefined } : d)
+          }
+        };
+        
+        setDimensions(updated.geometry.dimensions);
+        setPreviewData(updated);
+        setJsonContent(JSON.stringify(updated, null, 2));
+      } else {
+          const updatedDimensions = dimensions.map(d =>
+            d.id === id ? { ...d, isParameter: false } : d
+          );
+          setDimensions(updatedDimensions);
+          updateGeometryWithConstraintsAndDimensions(constraints, updatedDimensions);
+      }
+    } else {
+      // TURN ON
+      const currentValue = typeof dimension.value === 'number' ? dimension.value : 0;
+      setNewParamName("");
+      setParamCreationDialog({ open: true, dimensionId: id, initialValue: Number(currentValue) });
+    }
+  };
+
+  const handleConfirmParamCreation = () => {
+    if (!newParamName.trim()) return toast.error("El nombre es obligatorio");
+    if (!paramCreationDialog.dimensionId) return;
+    
+    if (previewData.params && newParamName in previewData.params) {
+       return toast.error("Ya existe un parámetro con ese nombre");
+    }
+
+    const dimension = dimensions.find(d => d.id === paramCreationDialog.dimensionId);
+    if (!dimension) return;
+
+    const numericValue = paramCreationDialog.initialValue;
+
+    const newParams = {
+        ...previewData.params,
+        [newParamName]: numericValue
+    };
+
+    const updatedDimensions = dimensions.map(d => 
+        d.id === paramCreationDialog.dimensionId 
+        ? { ...d, isParameter: true, label: newParamName, value: `params.${newParamName}` }
+        : d
     );
+
+    const updated = {
+        ...previewData,
+        params: newParams,
+        geometry: {
+            ...previewData.geometry,
+            dimensions: updatedDimensions
+        }
+    };
+
     setDimensions(updatedDimensions);
-    updateGeometryWithConstraintsAndDimensions(constraints, updatedDimensions);
+    setPreviewData(updated);
+    setJsonContent(JSON.stringify(updated, null, 2));
+    
+    setParamCreationDialog({ open: false, dimensionId: null, initialValue: 0 });
+    setNewParamName("");
+    toast.success(`Parámetro "${newParamName}" creado`);
   };
 
   const handleInvertAngle = (id: string) => {
@@ -1228,6 +1319,50 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
           <DialogFooter>
             <Button variant="ghost" onClick={() => setShowModeSelectionModal(false)}>
               Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* MODAL PARA CREAR PARÁMETRO */}
+      <Dialog open={paramCreationDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setParamCreationDialog({ open: false, dimensionId: null, initialValue: 0 });
+          setNewParamName("");
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Crear Parámetro Interactivo</DialogTitle>
+            <DialogDescription>
+              Asigna un nombre para este parámetro. Aparecerá en el panel de parámetros interactivos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nombre del Parámetro</Label>
+              <Input
+                value={newParamName}
+                onChange={(e) => setNewParamName(e.target.value)}
+                placeholder="Ej. Largo, Ancho, Radio..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleConfirmParamCreation();
+                }}
+                autoFocus
+              />
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Valor actual: <span className="font-mono text-primary">{paramCreationDialog.initialValue}cm</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => {
+               setParamCreationDialog({ open: false, dimensionId: null, initialValue: 0 });
+               setNewParamName("");
+            }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmParamCreation}>
+              Crear Parámetro
             </Button>
           </DialogFooter>
         </DialogContent>

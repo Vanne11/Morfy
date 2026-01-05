@@ -19,34 +19,31 @@ export function ParamsPanel({ params, onParamChange }: ParamsPanelProps) {
       </CardHeader>
       <CardContent className="p-3 space-y-3">
         {Object.entries(params).map(([key, value]) => {
+          // Normalizar clave para detección de altura
+          const lowerKey = key.toLowerCase();
+          const isHeight = lowerKey === 'grosor' || lowerKey === 'altura' || lowerKey === 'height';
+          
           if (typeof value === 'number') {
             return (
-              <div key={key} className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <Label className="text-[10px] uppercase font-bold text-zinc-400">{key}</Label>
-                  <span className="text-xs font-mono text-primary">{value}</span>
-                </div>
-                <input
-                  type="range"
-                  min={value > 0 ? 0 : value * 2}
-                  max={value > 0 ? value * 3 : 0}
-                  step={0.1}
-                  value={value}
-                  onChange={(e) => onParamChange(key, parseFloat(e.target.value))}
-                  className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex gap-2">
+              <div key={key} className="flex items-center justify-between gap-4">
+                <Label className="text-[10px] uppercase font-bold text-zinc-400 min-w-[80px]">
+                  {isHeight ? "Altura" : key}
+                </Label>
+                <div className="flex gap-2 items-center flex-1 justify-end">
                   <Input
                     type="number"
                     step="0.1"
                     value={value}
                     onChange={(e) => onParamChange(key, parseFloat(e.target.value))}
-                    className="h-7 text-xs font-mono"
+                    className="h-8 text-xs font-mono w-24 text-right"
                   />
+                  <span className="text-[10px] text-muted-foreground font-mono w-6">
+                    {isHeight ? "mm" : "cm"}
+                  </span>
                 </div>
               </div>
             );
-          } else if (typeof value === 'string' && key === 'color') {
+          } else if (typeof value === 'string' && (lowerKey.includes('color') || value.startsWith('#'))) {
             return (
               <div key={key} className="space-y-1.5">
                 <Label className="text-[10px] uppercase font-bold text-zinc-400">{key}</Label>
