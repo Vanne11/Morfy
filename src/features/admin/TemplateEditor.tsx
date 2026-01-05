@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { db, type ITemplate } from "@/app/db";
-import { Info, Code, Camera, Plus, Trash2, AlertCircle, CheckCircle2, Shapes, ChevronDown, Copy, HelpCircle } from "lucide-react";
+import { Info, Code, Camera, Plus, Trash2, AlertCircle, CheckCircle2, Shapes, ChevronDown, Copy, HelpCircle, Move, RotateCw, Maximize2, Grid3x3, Circle, Square, Pentagon, Minus, FlipHorizontal, FlipVertical } from "lucide-react";
 import { SVGParametricModel } from "@/features/viewer/components/SVGParametricModel";
 import { validateGeometryDefinition, generateSVGPreview } from "@/utils/svgToThree";
 import { evaluateExpression } from "@/utils/paramEvaluator";
@@ -135,28 +135,388 @@ function ExpressionCalculator({ params }: { params: Record<string, any> }) {
   );
 }
 
+// --- Panel de Transformaciones Paramétricas ---
+interface TransformationPanelProps {
+  selectedNodes: string[];
+  vertices: Record<string, { x: number | string; y: number | string }>;
+  onTransform: (transformation: any) => void;
+  onClearSelection: () => void;
+}
+
+function TransformationPanel({ selectedNodes, vertices, onTransform, onClearSelection }: TransformationPanelProps) {
+  const [translateX, setTranslateX] = useState("0");
+  const [translateY, setTranslateY] = useState("0");
+  const [scaleValue, setScaleValue] = useState("1");
+  const [rotateAngle, setRotateAngle] = useState("0");
+
+  if (selectedNodes.length === 0) {
+    return (
+      <Card className="border-zinc-700">
+        <CardContent className="p-3">
+          <div className="text-xs text-muted-foreground text-center py-4">
+            Selecciona nodos en el canvas para aplicar transformaciones
+            <div className="text-[10px] mt-2 text-zinc-500">
+              Ctrl+Click en nodos para seleccionar múltiples
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-primary/30">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Move className="h-4 w-4 text-primary" />
+            Transformaciones ({selectedNodes.length} nodos)
+          </CardTitle>
+          <Button onClick={onClearSelection} size="sm" variant="ghost" className="h-6 px-2 text-xs">
+            <Minus className="h-3 w-3 mr-1" />
+            Limpiar
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-3 space-y-3">
+        {/* TRASLADAR */}
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">Trasladar</Label>
+          <div className="grid grid-cols-3 gap-2">
+            <Input
+              type="number"
+              step="0.1"
+              value={translateX}
+              onChange={(e) => setTranslateX(e.target.value)}
+              placeholder="ΔX"
+              className="h-7 text-xs"
+            />
+            <Input
+              type="number"
+              step="0.1"
+              value={translateY}
+              onChange={(e) => setTranslateY(e.target.value)}
+              placeholder="ΔY"
+              className="h-7 text-xs"
+            />
+            <Button
+              onClick={() => {
+                onTransform({
+                  type: 'translate',
+                  x: parseFloat(translateX) || 0,
+                  y: parseFloat(translateY) || 0,
+                });
+                setTranslateX("0");
+                setTranslateY("0");
+              }}
+              size="sm"
+              className="h-7 text-xs"
+            >
+              Aplicar
+            </Button>
+          </div>
+        </div>
+
+        {/* ESCALAR */}
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">Escalar</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="number"
+              step="0.1"
+              value={scaleValue}
+              onChange={(e) => setScaleValue(e.target.value)}
+              placeholder="Factor"
+              className="h-7 text-xs"
+            />
+            <Button
+              onClick={() => {
+                onTransform({
+                  type: 'scale',
+                  factor: parseFloat(scaleValue) || 1,
+                });
+                setScaleValue("1");
+              }}
+              size="sm"
+              className="h-7 text-xs gap-1"
+            >
+              <Maximize2 className="h-3 w-3" />
+              Aplicar
+            </Button>
+          </div>
+        </div>
+
+        {/* ROTAR */}
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">Rotar</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="number"
+              step="1"
+              value={rotateAngle}
+              onChange={(e) => setRotateAngle(e.target.value)}
+              placeholder="Grados"
+              className="h-7 text-xs"
+            />
+            <Button
+              onClick={() => {
+                onTransform({
+                  type: 'rotate',
+                  angle: parseFloat(rotateAngle) || 0,
+                });
+                setRotateAngle("0");
+              }}
+              size="sm"
+              className="h-7 text-xs gap-1"
+            >
+              <RotateCw className="h-3 w-3" />
+              Aplicar
+            </Button>
+          </div>
+        </div>
+
+        {/* REFLEJAR */}
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">Reflejar</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={() => onTransform({ type: 'flip', axis: 'x' })}
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs gap-1"
+            >
+              <FlipHorizontal className="h-3 w-3" />
+              Horizontal
+            </Button>
+            <Button
+              onClick={() => onTransform({ type: 'flip', axis: 'y' })}
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs gap-1"
+            >
+              <FlipVertical className="h-3 w-3" />
+              Vertical
+            </Button>
+          </div>
+        </div>
+
+        {/* DISTRIBUIR */}
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">Distribuir</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={() => onTransform({ type: 'distribute', mode: 'circular' })}
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs gap-1"
+            >
+              <Circle className="h-3 w-3" />
+              Circular
+            </Button>
+            <Button
+              onClick={() => onTransform({ type: 'distribute', mode: 'line' })}
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs gap-1"
+            >
+              <Minus className="h-3 w-3" />
+              Lineal
+            </Button>
+          </div>
+        </div>
+
+        {/* ALINEAR */}
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">Alinear</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={() => onTransform({ type: 'align', axis: 'x' })}
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs gap-1"
+            >
+              Horizontal
+            </Button>
+            <Button
+              onClick={() => onTransform({ type: 'align', axis: 'y' })}
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs gap-1"
+            >
+              Vertical
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// --- Herramientas de Construcción Geométrica ---
+interface GeometryToolsProps {
+  onCreateShape: (shape: any) => void;
+}
+
+function GeometryTools({ onCreateShape }: GeometryToolsProps) {
+  const [shapeRadius, setShapeRadius] = useState("5");
+  const [shapeSides, setShapeSides] = useState("6");
+  const [rectWidth, setRectWidth] = useState("10");
+  const [rectHeight, setRectHeight] = useState("5");
+
+  return (
+    <Card className="border-zinc-700">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Shapes className="h-4 w-4 text-primary" />
+          Formas Predefinidas
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-3 space-y-3">
+        {/* CÍRCULO/POLÍGONO REGULAR */}
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">Polígono Regular</Label>
+          <div className="grid grid-cols-3 gap-2">
+            <Input
+              type="number"
+              min="3"
+              value={shapeSides}
+              onChange={(e) => setShapeSides(e.target.value)}
+              placeholder="Lados"
+              className="h-7 text-xs"
+            />
+            <Input
+              type="number"
+              step="0.1"
+              value={shapeRadius}
+              onChange={(e) => setShapeRadius(e.target.value)}
+              placeholder="Radio"
+              className="h-7 text-xs"
+            />
+            <Button
+              onClick={() => {
+                onCreateShape({
+                  type: 'polygon',
+                  sides: parseInt(shapeSides) || 6,
+                  radius: parseFloat(shapeRadius) || 5,
+                });
+              }}
+              size="sm"
+              className="h-7 text-xs gap-1"
+            >
+              <Pentagon className="h-3 w-3" />
+              Crear
+            </Button>
+          </div>
+        </div>
+
+        {/* RECTÁNGULO */}
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">Rectángulo</Label>
+          <div className="grid grid-cols-3 gap-2">
+            <Input
+              type="number"
+              step="0.1"
+              value={rectWidth}
+              onChange={(e) => setRectWidth(e.target.value)}
+              placeholder="Ancho"
+              className="h-7 text-xs"
+            />
+            <Input
+              type="number"
+              step="0.1"
+              value={rectHeight}
+              onChange={(e) => setRectHeight(e.target.value)}
+              placeholder="Alto"
+              className="h-7 text-xs"
+            />
+            <Button
+              onClick={() => {
+                onCreateShape({
+                  type: 'rectangle',
+                  width: parseFloat(rectWidth) || 10,
+                  height: parseFloat(rectHeight) || 5,
+                });
+              }}
+              size="sm"
+              className="h-7 text-xs gap-1"
+            >
+              <Square className="h-3 w-3" />
+              Crear
+            </Button>
+          </div>
+        </div>
+
+        {/* GRILLA */}
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">Grilla</Label>
+          <Button
+            onClick={() => {
+              onCreateShape({
+                type: 'grid',
+                rows: 3,
+                cols: 3,
+                spacing: 5,
+              });
+            }}
+            size="sm"
+            variant="secondary"
+            className="w-full h-7 text-xs gap-1"
+          >
+            <Grid3x3 className="h-3 w-3" />
+            Crear Grilla 3x3
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // --- Editor Interactivo Fabric.js ---
 interface FabricEditorProps {
   geometry: any;
   params: Record<string, any>;
   onNodeMove: (nodeId: string, x: number, y: number) => void;
   onNodeAdd: (perimeterId: string, afterNodeId: string, x: number, y: number) => void;
+  selectedNodes: string[];
+  onSelectionChange: (nodes: string[]) => void;
 }
 
-function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd }: FabricEditorProps) {
+function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd, selectedNodes, onSelectionChange }: FabricEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const nodeCircles = useRef<Map<string, fabric.Circle>>(new Map());
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !containerRef.current) return;
+
+    // Obtener dimensiones del contenedor
+    const containerWidth = containerRef.current.clientWidth;
+    const containerHeight = containerRef.current.clientHeight;
+
+    // Usar el menor valor para mantener canvas cuadrado
+    const canvasSize = Math.min(containerWidth - 32, containerHeight - 32);
+
+    // Obtener devicePixelRatio para pantallas HiDPI/Retina
+    const dpr = window.devicePixelRatio || 1;
+
+    // Configurar canvas nativo para alta resolución
+    const canvasEl = canvasRef.current;
+    canvasEl.width = canvasSize * dpr;
+    canvasEl.height = canvasSize * dpr;
+    canvasEl.style.width = `${canvasSize}px`;
+    canvasEl.style.height = `${canvasSize}px`;
 
     // Inicializar Fabric canvas
-    const canvas = new fabric.Canvas(canvasRef.current, {
-      width: 600,
-      height: 600,
+    const canvas = new fabric.Canvas(canvasEl, {
+      width: canvasSize,
+      height: canvasSize,
       backgroundColor: '#ffffff',
     });
+
+    // Escalar el contexto para compensar el devicePixelRatio
+    const ctx = canvas.getContext();
+    ctx.scale(dpr, dpr);
 
     fabricRef.current = canvas;
 
@@ -171,6 +531,9 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd }: Fabri
     const canvas = fabricRef.current;
     canvas.clear();
     nodeCircles.current.clear();
+
+    // Redibujar el fondo
+    canvas.backgroundColor = '#ffffff';
 
     // Evaluar vértices
     const evaluatedVertices: Record<string, { x: number; y: number }> = {};
@@ -197,7 +560,7 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd }: Fabri
     const centerY = (minY + maxY) / 2;
 
     // Calcular escala para que quepa en el canvas con padding
-    const padding = 50;
+    const padding = 60;
     const scaleX = (canvas.width! - padding * 2) / width;
     const scaleY = (canvas.height! - padding * 2) / height;
     const scale = Math.min(scaleX, scaleY, 50); // Max 50x zoom
@@ -207,6 +570,7 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd }: Fabri
     const toCanvasY = (y: number) => (y - centerY) * scale + canvas.height! / 2;
     const fromCanvasX = (cx: number) => (cx - canvas.width! / 2) / scale + centerX;
     const fromCanvasY = (cy: number) => (cy - canvas.height! / 2) / scale + centerY;
+
 
     // Dibujar contornos (líneas)
     for (const contour of geometry.contours || []) {
@@ -219,6 +583,7 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd }: Fabri
 
         if (!fromVertex || !toVertex) continue;
 
+        // Línea principal
         const line = new fabric.Line(
           [
             toCanvasX(fromVertex.x),
@@ -229,7 +594,7 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd }: Fabri
           {
             stroke: strokeColor,
             strokeWidth: 2,
-            selectable: true,
+            selectable: false,
             hoverCursor: 'pointer',
             data: {
               type: 'edge',
@@ -259,11 +624,13 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd }: Fabri
       const cx = toCanvasX(vertex.x);
       const cy = toCanvasY(vertex.y);
 
+      // Círculo principal (nodo)
+      const isSelected = selectedNodes.includes(id);
       const circle = new fabric.Circle({
         left: cx,
         top: cy,
-        radius: 6,
-        fill: '#10b981',
+        radius: isSelected ? 8 : 6,
+        fill: isSelected ? '#f59e0b' : '#10b981',
         stroke: '#ffffff',
         strokeWidth: 2,
         originX: 'center',
@@ -276,6 +643,7 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd }: Fabri
         data: { type: 'node', id },
       });
 
+      // Texto de la etiqueta
       const text = new fabric.Text(id, {
         left: cx + 10,
         top: cy - 10,
@@ -287,12 +655,27 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd }: Fabri
         evented: false,
       });
 
+      // Evento de click para selección múltiple
+      circle.on('mousedown', (e) => {
+        if (e.e.ctrlKey || e.e.metaKey) {
+          // Ctrl+Click para toggle selección
+          e.e.preventDefault();
+          const newSelection = selectedNodes.includes(id)
+            ? selectedNodes.filter(n => n !== id)
+            : [...selectedNodes, id];
+          onSelectionChange(newSelection);
+        } else if (!selectedNodes.includes(id)) {
+          // Click normal selecciona solo este nodo
+          onSelectionChange([id]);
+        }
+      });
+
       circle.on('moving', (e) => {
         const newX = fromCanvasX(circle.left!);
         const newY = fromCanvasY(circle.top!);
         onNodeMove(id, Number(newX.toFixed(1)), Number(newY.toFixed(1)));
 
-        // Mover el texto junto al círculo
+        // Mover la etiqueta junto al círculo
         text.set({
           left: circle.left! + 10,
           top: circle.top! - 10,
@@ -324,13 +707,11 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd }: Fabri
   }, [geometry, params, onNodeMove, onNodeAdd]);
 
   return (
-    <div className="space-y-2">
-      <div className="bg-white rounded border border-zinc-300 p-4 flex items-center justify-center">
-        <canvas ref={canvasRef} />
-      </div>
-      <div className="text-[10px] text-muted-foreground">
-        Arrastra nodos para moverlos · Ctrl+Click en línea para agregar nodo
-      </div>
+    <div
+      ref={containerRef}
+      className="w-full h-full bg-white rounded border border-zinc-300 p-4 flex items-center justify-center"
+    >
+      <canvas ref={canvasRef} />
     </div>
   );
 }
@@ -353,6 +734,7 @@ function VisualGeometryEditor({ geometry, onChange, params }: VisualGeometryEdit
   const [contours, setContours] = useState<any[]>([]);
   const [numNodesInput, setNumNodesInput] = useState("");
   const [showAddPerimeterDialog, setShowAddPerimeterDialog] = useState(false);
+  const [editMode, setEditMode] = useState<'number' | 'expression'>('number');
 
   // Sincronizar desde geometry a state local
   useEffect(() => {
@@ -468,90 +850,40 @@ function VisualGeometryEditor({ geometry, onChange, params }: VisualGeometryEdit
     toast.success(`Perímetro "${id}" y sus ${nodesToRemove.length} nodos eliminados`);
   };
 
-  const handleNodeMove = (nodeId: string, x: number, y: number) => {
-    const newVertices = vertices.map(v =>
-      v.id === nodeId ? { ...v, x, y } : v
-    );
-    setVertices(newVertices);
-    updateGeometry(newVertices, contours);
-  };
-
-  const handleNodeAdd = (perimeterId: string, afterNodeId: string, x: number, y: number) => {
-    // Encontrar el contorno
-    const contour = contours.find(c => c.id === perimeterId);
-    if (!contour) return;
-
-    // Encontrar el índice del elemento que va desde afterNodeId
-    const elementIndex = contour.elements.findIndex((e: any) => e.from === afterNodeId);
-    if (elementIndex === -1) return;
-
-    const element = contour.elements[elementIndex];
-
-    // Generar ID para el nuevo nodo
-    const existingNodes = vertices.filter(v => v.id.startsWith(perimeterId + "_"));
-    const nodeNumbers = existingNodes.map(v => {
-      const match = v.id.match(/_(\d+)$/);
-      return match ? parseInt(match[1]) : 0;
-    });
-    const nextNumber = Math.max(...nodeNumbers, 0) + 1;
-    const newNodeId = `${perimeterId}_${nextNumber}`;
-
-    // Crear el nuevo nodo
-    const newNode: Vertex = { id: newNodeId, x, y };
-
-    // Insertar el nodo en la lista de vértices
-    const newVertices = [...vertices, newNode];
-
-    // Modificar el contorno: dividir el elemento en dos
-    const newElements = [...contour.elements];
-    newElements.splice(elementIndex, 1,
-      { type: "line", from: element.from, to: newNodeId },
-      { type: "line", from: newNodeId, to: element.to }
-    );
-
-    const newContours = contours.map(c =>
-      c.id === perimeterId ? { ...c, elements: newElements } : c
-    );
-
-    setVertices(newVertices);
-    setContours(newContours);
-    updateGeometry(newVertices, newContours);
-  };
-
   return (
-    <div className="space-y-6">
-      {/* VISOR INTERACTIVO */}
-      <div className="space-y-2">
-        <Label className="text-sm font-bold text-primary">Visor Interactivo</Label>
-        <FabricGeometryEditor
-          geometry={geometry}
-          params={params}
-          onNodeMove={handleNodeMove}
-          onNodeAdd={handleNodeAdd}
-        />
-      </div>
-
+    <div className="space-y-4">
       {/* SECCIÓN PERÍMETROS */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <div>
+          <div className="flex-1">
             <Label className="text-sm font-bold text-primary">Perímetros</Label>
             <p className="text-[10px] text-muted-foreground mt-0.5">
               Conecta nodos para formar contornos cerrados
             </p>
           </div>
-          <Button
-            onClick={() => setShowAddPerimeterDialog(!showAddPerimeterDialog)}
-            size="sm"
-            className="gap-2"
-          >
-            <Plus className="h-3 w-3" />
-            Crear Perímetro
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setEditMode(editMode === 'number' ? 'expression' : 'number')}
+              size="sm"
+              variant="outline"
+              className="gap-2 h-8"
+            >
+              <Code className="h-3 w-3" />
+              {editMode === 'number' ? 'Modo Expresión' : 'Modo Número'}
+            </Button>
+            <Button
+              onClick={() => setShowAddPerimeterDialog(!showAddPerimeterDialog)}
+              size="sm"
+              className="gap-2"
+            >
+              <Plus className="h-3 w-3" />
+              Crear Perímetro
+            </Button>
+          </div>
         </div>
 
         {showAddPerimeterDialog && (
-          <Card className="bg-blue-500/10 border-blue-500/30 animate-in slide-in-from-top-2 duration-200">
+          <Card>
             <CardContent className="p-3 space-y-3">
               <div className="space-y-2">
                 <Label className="text-xs font-bold">¿Cuántos nodos?</Label>
@@ -564,8 +896,8 @@ function VisualGeometryEditor({ geometry, onChange, params }: VisualGeometryEdit
                   className="h-9"
                 />
                 {numNodesInput && parseInt(numNodesInput) > 0 && (
-                  <div className="bg-zinc-900 rounded p-2">
-                    <p className="text-[10px] text-zinc-400 mb-1">
+                  <div className="bg-muted rounded p-2">
+                    <p className="text-[10px] text-muted-foreground mb-1">
                       Se creará: <span className="text-primary font-bold">
                         {contours.length === 0 ? "exterior" : `interior${contours.length}`}
                       </span> con {numNodesInput} nodos
@@ -597,73 +929,183 @@ function VisualGeometryEditor({ geometry, onChange, params }: VisualGeometryEdit
             const contourNodes = vertices.filter(v => v.id.startsWith(contour.id + "_"));
             return (
               <div key={contour.id} className="space-y-2">
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="space-y-1 flex-1">
-                      <div className="font-bold text-sm text-emerald-400">{contour.id}</div>
-                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                        {contourNodes.length} nodos · {contour.closed ? "Cerrado" : "Abierto"}
+                <Card>
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="space-y-1 flex-1">
+                        <div className="font-bold text-sm">{contour.id}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {contourNodes.length} nodos · {contour.closed ? "Cerrado" : "Abierto"}
+                        </div>
                       </div>
-                    </div>
-                    <Button
-                      onClick={() => removeContour(contour.id)}
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0 text-red-500 hover:bg-red-500/10"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-
-                  {/* NODOS DEL PERÍMETRO */}
-                  <div className="space-y-1.5">
-                    {contourNodes.map((vertex) => (
-                      <div
-                        key={vertex.id}
-                        className="bg-zinc-800/50 border border-zinc-700 rounded p-2 flex items-center gap-2"
+                      <Button
+                        onClick={() => removeContour(contour.id)}
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
                       >
-                        <div className="bg-emerald-600 text-white font-bold rounded px-2 py-0.5 text-[10px] min-w-[70px] text-center">
-                          {vertex.id}
-                        </div>
-                        <div className="flex-1 grid grid-cols-2 gap-2">
-                          <div className="space-y-0.5">
-                            <Label className="text-[9px] text-zinc-400 uppercase">X (cm)</Label>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              value={vertex.x}
-                              onChange={(e) => updateVertex(vertex.id, 'x', e.target.value)}
-                              className="h-7 text-xs font-mono"
-                              placeholder="0"
-                            />
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+
+                    {/* NODOS DEL PERÍMETRO */}
+                    <div className="space-y-1.5">
+                      {contourNodes.map((vertex) => {
+                        const evaluatedX = typeof vertex.x === 'string' && vertex.x.includes('params')
+                          ? evaluateExpression(vertex.x, params)
+                          : vertex.x;
+                        const evaluatedY = typeof vertex.y === 'string' && vertex.y.includes('params')
+                          ? evaluateExpression(vertex.y, params)
+                          : vertex.y;
+
+                        return (
+                          <div
+                            key={vertex.id}
+                            className="bg-muted/50 border rounded p-2 flex items-center gap-2"
+                          >
+                            <div className="bg-primary text-primary-foreground font-bold rounded px-2 py-0.5 text-[10px] min-w-[70px] text-center">
+                              {vertex.id}
+                            </div>
+                            <div className="flex-1 grid grid-cols-2 gap-2">
+                              <div className="space-y-0.5">
+                                <Label className="text-[9px] text-muted-foreground uppercase flex justify-between">
+                                  <span>X (cm)</span>
+                                  {editMode === 'expression' && typeof evaluatedX === 'number' && (
+                                    <span className="text-emerald-500">= {evaluatedX.toFixed(1)}</span>
+                                  )}
+                                </Label>
+                                <Input
+                                  type={editMode === 'number' ? 'number' : 'text'}
+                                  step="0.1"
+                                  value={vertex.x}
+                                  onChange={(e) => updateVertex(vertex.id, 'x', e.target.value)}
+                                  className="h-7 text-xs font-mono"
+                                  placeholder={editMode === 'number' ? '0' : 'params.valor'}
+                                />
+                              </div>
+                              <div className="space-y-0.5">
+                                <Label className="text-[9px] text-muted-foreground uppercase flex justify-between">
+                                  <span>Y (cm)</span>
+                                  {editMode === 'expression' && typeof evaluatedY === 'number' && (
+                                    <span className="text-emerald-500">= {evaluatedY.toFixed(1)}</span>
+                                  )}
+                                </Label>
+                                <Input
+                                  type={editMode === 'number' ? 'number' : 'text'}
+                                  step="0.1"
+                                  value={vertex.y}
+                                  onChange={(e) => updateVertex(vertex.id, 'y', e.target.value)}
+                                  className="h-7 text-xs font-mono"
+                                  placeholder={editMode === 'number' ? '0' : 'params.valor'}
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div className="space-y-0.5">
-                            <Label className="text-[9px] text-zinc-400 uppercase">Y (cm)</Label>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              value={vertex.y}
-                              onChange={(e) => updateVertex(vertex.id, 'y', e.target.value)}
-                              className="h-7 text-xs font-mono"
-                              placeholder="0"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             );
           })}
           {contours.length === 0 && (
-            <div className="text-center text-zinc-500 text-xs py-8 border-2 border-dashed border-zinc-800 rounded-lg bg-zinc-950/50">
+            <div className="text-center text-muted-foreground text-xs py-8 border-2 border-dashed rounded-lg bg-muted/20">
               No hay perímetros. Crea uno para empezar.
             </div>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+// --- Panel de Parámetros Interactivo ---
+interface ParamsPanelProps {
+  params: Record<string, any>;
+  onParamChange: (key: string, value: any) => void;
+}
+
+function ParamsPanel({ params, onParamChange }: ParamsPanelProps) {
+  return (
+    <Card className="border-zinc-700">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Info className="h-4 w-4 text-primary" />
+          Parámetros Interactivos
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-3 space-y-3">
+        {Object.entries(params).map(([key, value]) => {
+          if (typeof value === 'number') {
+            return (
+              <div key={key} className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label className="text-[10px] uppercase font-bold text-zinc-400">{key}</Label>
+                  <span className="text-xs font-mono text-primary">{value}</span>
+                </div>
+                <input
+                  type="range"
+                  min={value > 0 ? 0 : value * 2}
+                  max={value > 0 ? value * 3 : 0}
+                  step={0.1}
+                  value={value}
+                  onChange={(e) => onParamChange(key, parseFloat(e.target.value))}
+                  className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={value}
+                    onChange={(e) => onParamChange(key, parseFloat(e.target.value))}
+                    className="h-7 text-xs font-mono"
+                  />
+                </div>
+              </div>
+            );
+          } else if (typeof value === 'string' && key === 'color') {
+            return (
+              <div key={key} className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-bold text-zinc-400">{key}</Label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={value}
+                    onChange={(e) => onParamChange(key, e.target.value)}
+                    className="h-8 w-12 rounded cursor-pointer"
+                  />
+                  <Input
+                    type="text"
+                    value={value}
+                    onChange={(e) => onParamChange(key, e.target.value)}
+                    className="h-8 text-xs font-mono flex-1"
+                  />
+                </div>
+              </div>
+            );
+          } else {
+            return (
+              <div key={key} className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-bold text-zinc-400">{key}</Label>
+                <Input
+                  type="text"
+                  value={JSON.stringify(value)}
+                  onChange={(e) => {
+                    try {
+                      onParamChange(key, JSON.parse(e.target.value));
+                    } catch {
+                      onParamChange(key, e.target.value);
+                    }
+                  }}
+                  className="h-7 text-xs font-mono"
+                />
+              </div>
+            );
+          }
+        })}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -678,6 +1120,7 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [jsonParseError, setJsonParseError] = useState<string>("");
   const [show3DModal, setShow3DModal] = useState(false);
+  const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 
   useEffect(() => {
     if (template) {
@@ -757,6 +1200,184 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
     // Validar
     const validation = validateGeometryDefinition(newGeometry);
     setValidationErrors(validation.errors);
+  };
+
+  const handleParamChange = (key: string, value: any) => {
+    const updated = {
+      ...previewData,
+      params: {
+        ...previewData.params,
+        [key]: value,
+      },
+    };
+    setPreviewData(updated);
+    setJsonContent(JSON.stringify(updated, null, 2));
+  };
+
+  const handleTransform = (transformation: any) => {
+    if (selectedNodes.length === 0 || !previewData?.geometry) return;
+
+    const geometry = previewData.geometry;
+    const newVertices = { ...geometry.vertices };
+    const params = previewData.params || {};
+
+    // Evaluar vértices seleccionados
+    const selectedVertices = selectedNodes.map(id => {
+      const v = newVertices[id];
+      return {
+        id,
+        x: typeof v.x === 'string' ? evaluateExpression(v.x, params) : parseFloat(v.x),
+        y: typeof v.y === 'string' ? evaluateExpression(v.y, params) : parseFloat(v.y),
+      };
+    });
+
+    // Calcular centroide
+    const centroidX = selectedVertices.reduce((sum, v) => sum + v.x, 0) / selectedVertices.length;
+    const centroidY = selectedVertices.reduce((sum, v) => sum + v.y, 0) / selectedVertices.length;
+
+    selectedNodes.forEach(id => {
+      const vertex = selectedVertices.find(v => v.id === id);
+      if (!vertex) return;
+
+      let newX = vertex.x;
+      let newY = vertex.y;
+
+      switch (transformation.type) {
+        case 'translate':
+          newX += transformation.x;
+          newY += transformation.y;
+          break;
+
+        case 'scale':
+          newX = centroidX + (vertex.x - centroidX) * transformation.factor;
+          newY = centroidY + (vertex.y - centroidY) * transformation.factor;
+          break;
+
+        case 'rotate':
+          const angle = (transformation.angle * Math.PI) / 180;
+          const dx = vertex.x - centroidX;
+          const dy = vertex.y - centroidY;
+          newX = centroidX + dx * Math.cos(angle) - dy * Math.sin(angle);
+          newY = centroidY + dx * Math.sin(angle) + dy * Math.cos(angle);
+          break;
+
+        case 'flip':
+          if (transformation.axis === 'x') {
+            newY = centroidY - (vertex.y - centroidY);
+          } else {
+            newX = centroidX - (vertex.x - centroidX);
+          }
+          break;
+
+        case 'align':
+          if (transformation.axis === 'x') {
+            newY = centroidY;
+          } else {
+            newX = centroidX;
+          }
+          break;
+
+        case 'distribute':
+          if (transformation.mode === 'circular') {
+            const count = selectedNodes.length;
+            const index = selectedNodes.indexOf(id);
+            const angle = (index / count) * 2 * Math.PI;
+            const radius = Math.sqrt(Math.pow(vertex.x - centroidX, 2) + Math.pow(vertex.y - centroidY, 2));
+            newX = centroidX + radius * Math.cos(angle);
+            newY = centroidY + radius * Math.sin(angle);
+          } else if (transformation.mode === 'line') {
+            const count = selectedNodes.length;
+            const index = selectedNodes.indexOf(id);
+            const minX = Math.min(...selectedVertices.map(v => v.x));
+            const maxX = Math.max(...selectedVertices.map(v => v.x));
+            newX = minX + (maxX - minX) * (index / (count - 1));
+          }
+          break;
+      }
+
+      newVertices[id] = {
+        x: Number(newX.toFixed(1)),
+        y: Number(newY.toFixed(1)),
+      };
+    });
+
+    handleGeometryChange({ ...geometry, vertices: newVertices });
+    toast.success('Transformación aplicada');
+  };
+
+  const handleCreateShape = (shape: any) => {
+    if (!previewData?.geometry) return;
+
+    const geometry = previewData.geometry;
+    const contours = geometry.contours || [];
+    const vertices = geometry.vertices || {};
+
+    let newVertices: Record<string, any> = {};
+    let newElements: any[] = [];
+    let perimeterId = `shape_${contours.length + 1}`;
+
+    switch (shape.type) {
+      case 'polygon':
+        const { sides, radius } = shape;
+        for (let i = 0; i < sides; i++) {
+          const angle = (i / sides) * 2 * Math.PI - Math.PI / 2;
+          const x = (radius * Math.cos(angle)).toFixed(1);
+          const y = (radius * Math.sin(angle)).toFixed(1);
+          const nodeId = `${perimeterId}_${i + 1}`;
+          newVertices[nodeId] = { x, y };
+
+          const nextIndex = (i + 1) % sides;
+          const nextNodeId = `${perimeterId}_${nextIndex + 1}`;
+          newElements.push({ type: 'line', from: nodeId, to: nextNodeId });
+        }
+        break;
+
+      case 'rectangle':
+        const { width, height } = shape;
+        const halfW = width / 2;
+        const halfH = height / 2;
+        const rectPoints = [
+          { x: -halfW, y: -halfH },
+          { x: halfW, y: -halfH },
+          { x: halfW, y: halfH },
+          { x: -halfW, y: halfH },
+        ];
+        rectPoints.forEach((pt, i) => {
+          const nodeId = `${perimeterId}_${i + 1}`;
+          newVertices[nodeId] = { x: pt.x.toFixed(1), y: pt.y.toFixed(1) };
+          const nextIndex = (i + 1) % 4;
+          const nextNodeId = `${perimeterId}_${nextIndex + 1}`;
+          newElements.push({ type: 'line', from: nodeId, to: nextNodeId });
+        });
+        break;
+
+      case 'grid':
+        // Grilla de nodos sin conectar
+        const { rows, cols, spacing } = shape;
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const nodeId = `${perimeterId}_${row}_${col}`;
+            newVertices[nodeId] = {
+              x: (col * spacing).toFixed(1),
+              y: (row * spacing).toFixed(1),
+            };
+          }
+        }
+        break;
+    }
+
+    const newContour = {
+      id: perimeterId,
+      type: contours.length === 0 ? 'outer' : 'hole',
+      closed: shape.type !== 'grid',
+      elements: newElements,
+    };
+
+    const allVertices = { ...vertices, ...newVertices };
+    const allContours = shape.type === 'grid' ? contours : [...contours, newContour];
+
+    handleGeometryChange({ ...geometry, vertices: allVertices, contours: allContours });
+    toast.success(`Forma "${perimeterId}" creada`);
   };
 
   const handleSave = async () => {
@@ -850,12 +1471,11 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
       </Card>
 
       {/* LAYOUT PRINCIPAL */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="flex gap-4 h-[calc(100vh-12rem)]">
 
-        {/* LADO IZQUIERDO: EDITOR VISUAL */}
-        <div className="space-y-4">
-          {/* EDITOR VISUAL DE GEOMETRÍA */}
-          <Card className="border-primary/20">
+        {/* LADO IZQUIERDO: CANVAS (55%) */}
+        <div className="w-[55%] flex flex-col">
+          <Card className="border-primary/20 flex-1 flex flex-col">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -873,115 +1493,153 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="p-4 flex-1 overflow-hidden">
               {previewData?.geometry && (
-                <VisualGeometryEditor
+                <FabricGeometryEditor
                   geometry={previewData.geometry}
                   params={previewData.params || {}}
-                  onChange={handleGeometryChange}
+                  selectedNodes={selectedNodes}
+                  onSelectionChange={setSelectedNodes}
+                  onNodeMove={(nodeId, x, y) => {
+                    const newVertices = { ...previewData.geometry.vertices };
+                    newVertices[nodeId] = { x, y };
+                    handleGeometryChange({ ...previewData.geometry, vertices: newVertices });
+                  }}
+                  onNodeAdd={(perimeterId, afterNodeId, x, y) => {
+                    const contour = previewData.geometry.contours.find((c: any) => c.id === perimeterId);
+                    if (!contour) return;
+
+                    const elementIndex = contour.elements.findIndex((e: any) => e.from === afterNodeId);
+                    if (elementIndex === -1) return;
+
+                    const element = contour.elements[elementIndex];
+                    const existingNodes = Object.keys(previewData.geometry.vertices).filter(id => id.startsWith(perimeterId + "_"));
+                    const nodeNumbers = existingNodes.map(id => {
+                      const match = id.match(/_(\d+)$/);
+                      return match ? parseInt(match[1]) : 0;
+                    });
+                    const nextNumber = Math.max(...nodeNumbers, 0) + 1;
+                    const newNodeId = `${perimeterId}_${nextNumber}`;
+
+                    const newVertices = { ...previewData.geometry.vertices, [newNodeId]: { x, y } };
+                    const newElements = [...contour.elements];
+                    newElements.splice(elementIndex, 1,
+                      { type: "line", from: element.from, to: newNodeId },
+                      { type: "line", from: newNodeId, to: element.to }
+                    );
+
+                    const newContours = previewData.geometry.contours.map((c: any) =>
+                      c.id === perimeterId ? { ...c, elements: newElements } : c
+                    );
+
+                    handleGeometryChange({ ...previewData.geometry, vertices: newVertices, contours: newContours });
+                  }}
                 />
               )}
             </CardContent>
           </Card>
-
-          {/* EDITOR JSON - PLEGABLE */}
-          <details className="group">
-            <summary className="cursor-pointer list-none">
-              <Card className="border-zinc-700 hover:border-primary/50 transition-colors">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Code className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Editor JSON (Avanzado)</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </summary>
-            <Card className="mt-2 border-zinc-800">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <Label className="text-xs uppercase font-bold text-primary">JSON</Label>
-                  <div className="flex gap-2 items-center">
-                    {jsonParseError ? (
-                      <Badge variant="destructive" className="text-[9px] gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Error
-                      </Badge>
-                    ) : validationErrors.length > 0 ? (
-                      <Badge variant="destructive" className="text-[9px] gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {validationErrors.length} Errores
-                      </Badge>
-                    ) : jsonContent && !jsonParseError ? (
-                      <Badge variant="default" className="text-[9px] gap-1 bg-green-600">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Válido
-                      </Badge>
-                    ) : null}
-                  </div>
-                </div>
-                <Textarea
-                  value={jsonContent}
-                  onChange={e => handleJsonChange(e.target.value)}
-                  rows={12}
-                  className="font-mono text-[11px] bg-zinc-950 text-emerald-400 p-3 rounded border-zinc-800"
-                />
-                {jsonParseError && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded p-2 flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                    <div className="text-xs">
-                      <p className="font-bold text-red-400">Error JSON</p>
-                      <p className="text-red-300 font-mono text-[10px]">{jsonParseError}</p>
-                    </div>
-                  </div>
-                )}
-                {!jsonParseError && validationErrors.length > 0 && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                      <div className="text-xs flex-1">
-                        <p className="font-bold text-red-400">Errores de Geometría</p>
-                        <ul className="text-red-300 space-y-0.5 text-[10px]">
-                          {validationErrors.map((error, i) => (
-                            <li key={i} className="font-mono">• {error}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </details>
         </div>
 
-        {/* LADO DERECHO: INFO */}
-        <div className="space-y-4">
-          <div className="sticky top-4">
-            {!validationErrors.length && (
-              <Card className="bg-blue-500/5 border-blue-500/20">
-                <CardHeader className="py-3">
-                  <CardTitle className="text-sm flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                    <Info className="h-4 w-4" />
-                    Controles
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4 pt-0 space-y-2 text-xs">
-                  <div className="flex items-start gap-2">
-                    <div className="bg-blue-500 text-white rounded px-1.5 py-0.5 text-[10px] font-bold">DRAG</div>
-                    <p>Arrastra cualquier nodo verde para moverlo</p>
+        {/* LADO DERECHO: PANEL DE HERRAMIENTAS (45%) */}
+        <div className="w-[45%] flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+            {/* TRANSFORMACIONES PARAMÉTRICAS */}
+            <TransformationPanel
+              selectedNodes={selectedNodes}
+              vertices={previewData?.geometry?.vertices || {}}
+              onTransform={handleTransform}
+              onClearSelection={() => setSelectedNodes([])}
+            />
+
+            {/* HERRAMIENTAS GEOMÉTRICAS */}
+            <GeometryTools onCreateShape={handleCreateShape} />
+
+            {/* PARÁMETROS INTERACTIVOS */}
+            {previewData?.params && (
+              <ParamsPanel
+                params={previewData.params}
+                onParamChange={handleParamChange}
+              />
+            )}
+
+            {/* EDITOR VISUAL DE GEOMETRÍA */}
+            {previewData?.geometry && (
+              <VisualGeometryEditor
+                geometry={previewData.geometry}
+                params={previewData.params || {}}
+                onChange={handleGeometryChange}
+              />
+            )}
+
+            {/* EDITOR JSON - PLEGABLE */}
+            <details className="group">
+              <summary className="cursor-pointer list-none">
+                <Card className="border-zinc-700 hover:border-primary/50 transition-colors">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Code className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Editor JSON (Avanzado)</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 text-muted-foreground" />
+                  </CardContent>
+                </Card>
+              </summary>
+              <Card className="mt-2 border-zinc-800">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs uppercase font-bold text-primary">JSON</Label>
+                    <div className="flex gap-2 items-center">
+                      {jsonParseError ? (
+                        <Badge variant="destructive" className="text-[9px] gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Error
+                        </Badge>
+                      ) : validationErrors.length > 0 ? (
+                        <Badge variant="destructive" className="text-[9px] gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {validationErrors.length} Errores
+                        </Badge>
+                      ) : jsonContent && !jsonParseError ? (
+                        <Badge variant="default" className="text-[9px] gap-1 bg-green-600">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Válido
+                        </Badge>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <div className="bg-blue-500 text-white rounded px-1.5 py-0.5 text-[10px] font-bold">CTRL+CLICK</div>
-                    <p>Haz Ctrl+Click en una línea para agregar un nodo en el medio</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="bg-blue-500 text-white rounded px-1.5 py-0.5 text-[10px] font-bold">INPUTS</div>
-                    <p>Usa las flechitas ↑↓ en los campos X/Y para ajustes precisos</p>
-                  </div>
+                  <Textarea
+                    value={jsonContent}
+                    onChange={e => handleJsonChange(e.target.value)}
+                    rows={12}
+                    className="font-mono text-[11px] bg-zinc-950 text-emerald-400 p-3 rounded border-zinc-800"
+                  />
+                  {jsonParseError && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded p-2 flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                      <div className="text-xs">
+                        <p className="font-bold text-red-400">Error JSON</p>
+                        <p className="text-red-300 font-mono text-[10px]">{jsonParseError}</p>
+                      </div>
+                    </div>
+                  )}
+                  {!jsonParseError && validationErrors.length > 0 && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                        <div className="text-xs flex-1">
+                          <p className="font-bold text-red-400">Errores de Geometría</p>
+                          <ul className="text-red-300 space-y-0.5 text-[10px]">
+                            {validationErrors.map((error, i) => (
+                              <li key={i} className="font-mono">• {error}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            )}
+            </details>
           </div>
         </div>
 
