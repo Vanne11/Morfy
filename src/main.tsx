@@ -8,7 +8,7 @@ import './app/i18n'; // Initialize i18next
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Suspense fallback="Loading...">
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <BrowserRouter>
         <App />
       </BrowserRouter>
     </Suspense>
