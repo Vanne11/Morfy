@@ -10,11 +10,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { db, type ITemplate } from "@/app/db";
-import { Info, Code, Camera, Plus, Trash2, AlertCircle, CheckCircle2, Shapes, ChevronDown, Copy, HelpCircle, Move, RotateCw, Maximize2, Grid3x3, Circle, Square, Pentagon, Minus, FlipHorizontal, FlipVertical } from "lucide-react";
+import { Info, Code, Camera, Plus, Trash2, AlertCircle, CheckCircle2, Shapes, ChevronDown, Move, RotateCw, Maximize2, Grid3x3, Circle, Square, Pentagon, Minus, FlipHorizontal, FlipVertical, Lock, ArrowUpDown, ArrowLeftRight, Ruler, Cable } from "lucide-react";
 import { SVGParametricModel } from "@/features/viewer/components/SVGParametricModel";
-import { validateGeometryDefinition, generateSVGPreview } from "@/utils/svgToThree";
+import { validateGeometryDefinition } from "@/utils/svgToThree";
 import { evaluateExpression } from "@/utils/paramEvaluator";
 import * as fabric from "fabric";
+import {
+  type Constraint,
+  type Dimension,
+  constraintSolver,
+  type Vertex2D
+} from "@/utils/constraintSolver";
 
 interface TemplateEditorProps {
   template: ITemplate | null;
@@ -73,68 +79,6 @@ const LivePreview = forwardRef(({ data }: { data: any }, ref) => {
   );
 });
 
-// --- Calculadora de Expresiones ---
-function ExpressionCalculator({ params }: { params: Record<string, any> }) {
-  const [expression, setExpression] = useState("params.longitud * 0.5");
-  const [result, setResult] = useState<number | string>("");
-
-  const handleCalculate = () => {
-    try {
-      const evaluated = evaluateExpression(expression, params);
-      setResult(evaluated);
-    } catch (error) {
-      setResult(error instanceof Error ? error.message : "Error");
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="text-xs text-muted-foreground">
-        Prueba expresiones con los parámetros actuales del template
-      </div>
-      <div className="space-y-2">
-        <Input
-          value={expression}
-          onChange={(e) => setExpression(e.target.value)}
-          placeholder="params.longitud * 0.5"
-          className="font-mono text-xs"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleCalculate();
-            }
-          }}
-        />
-        <Button
-          onClick={handleCalculate}
-          size="sm"
-          variant="secondary"
-          className="w-full text-xs"
-        >
-          Calcular
-        </Button>
-        {result !== "" && (
-          <div className="bg-zinc-900 border border-zinc-800 rounded p-3">
-            <div className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Resultado</div>
-            <div className="font-mono text-sm text-emerald-400">
-              {typeof result === "number" ? result.toFixed(2) : result}
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="text-[10px] text-muted-foreground space-y-1">
-        <div className="font-bold">Parámetros disponibles:</div>
-        <div className="bg-zinc-950 p-2 rounded font-mono text-zinc-400">
-          {Object.entries(params).map(([key, value]) => (
-            <div key={key}>
-              params.{key} = {typeof value === "number" ? value : JSON.stringify(value)}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // --- Panel de Transformaciones Paramétricas ---
 interface TransformationPanelProps {
   selectedNodes: string[];
@@ -143,7 +87,7 @@ interface TransformationPanelProps {
   onClearSelection: () => void;
 }
 
-function TransformationPanel({ selectedNodes, vertices, onTransform, onClearSelection }: TransformationPanelProps) {
+function TransformationPanel({ selectedNodes, onTransform, onClearSelection }: TransformationPanelProps) {
   const [translateX, setTranslateX] = useState("0");
   const [translateY, setTranslateY] = useState("0");
   const [scaleValue, setScaleValue] = useState("1");
@@ -155,8 +99,9 @@ function TransformationPanel({ selectedNodes, vertices, onTransform, onClearSele
         <CardContent className="p-3">
           <div className="text-xs text-muted-foreground text-center py-4">
             Selecciona nodos en el canvas para aplicar transformaciones
-            <div className="text-[10px] mt-2 text-zinc-500">
-              Ctrl+Click en nodos para seleccionar múltiples
+            <div className="text-[10px] mt-2 text-zinc-500 space-y-1">
+              <div>• Ctrl+Click: selección múltiple</div>
+              <div>• Doble-click en línea: agregar nodo</div>
             </div>
           </div>
         </CardContent>
@@ -471,6 +416,463 @@ function GeometryTools({ onCreateShape }: GeometryToolsProps) {
   );
 }
 
+// --- Panel de Restricciones ---
+interface ConstraintsPanelProps {
+  constraints: Constraint[];
+  selectedNodes: string[];
+  vertices: Record<string, Vertex2D>;
+  onAddConstraint: (constraint: Omit<Constraint, 'id'>) => void;
+  onToggleConstraint: (id: string) => void;
+  onRemoveConstraint: (id: string) => void;
+}
+
+function ConstraintsPanel({
+  constraints,
+  selectedNodes,
+  vertices,
+  onAddConstraint,
+  onToggleConstraint,
+  onRemoveConstraint
+}: ConstraintsPanelProps) {
+  const canAddHorizontal = selectedNodes.length >= 2;
+  const canAddVertical = selectedNodes.length >= 2;
+  const canAddFixed = selectedNodes.length >= 1;
+  const canAddDistance = selectedNodes.length === 2;
+
+  const addConstraint = (type: Constraint['type']) => {
+    if (type === 'fixed' && selectedNodes.length >= 1) {
+      selectedNodes.forEach(nodeId => {
+        onAddConstraint({
+          type: 'fixed',
+          nodes: [nodeId],
+          enabled: true
+        });
+      });
+      toast.success(`${selectedNodes.length} nodo(s) fijado(s)`);
+    } else if ((type === 'horizontal' || type === 'vertical') && selectedNodes.length >= 2) {
+      onAddConstraint({
+        type,
+        nodes: [...selectedNodes],
+        enabled: true
+      });
+      toast.success(`Restricción ${type === 'horizontal' ? 'horizontal' : 'vertical'} añadida`);
+    } else if (type === 'distance' && selectedNodes.length === 2) {
+      const [nodeA, nodeB] = selectedNodes;
+      const posA = vertices[nodeA];
+      const posB = vertices[nodeB];
+
+      if (posA && posB) {
+        const dist = Math.sqrt(
+          Math.pow(posB.x - posA.x, 2) + Math.pow(posB.y - posA.y, 2)
+        );
+
+        onAddConstraint({
+          type: 'distance',
+          nodes: [nodeA, nodeB],
+          value: Number(dist.toFixed(1)),
+          enabled: true
+        });
+        toast.success(`Restricción de distancia: ${dist.toFixed(1)}cm`);
+      }
+    }
+  };
+
+  const getConstraintIcon = (type: Constraint['type']) => {
+    switch (type) {
+      case 'fixed': return <Lock className="h-3 w-3" />;
+      case 'horizontal': return <ArrowLeftRight className="h-3 w-3" />;
+      case 'vertical': return <ArrowUpDown className="h-3 w-3" />;
+      case 'distance': return <Ruler className="h-3 w-3" />;
+      default: return <Cable className="h-3 w-3" />;
+    }
+  };
+
+  const getConstraintLabel = (constraint: Constraint) => {
+    switch (constraint.type) {
+      case 'fixed':
+        return `Fijo: ${constraint.nodes[0]}`;
+      case 'horizontal':
+        return `Horizontal: ${constraint.nodes.join(', ')}`;
+      case 'vertical':
+        return `Vertical: ${constraint.nodes.join(', ')}`;
+      case 'distance':
+        return `Distancia: ${constraint.nodes.join(' ↔ ')} = ${constraint.value}cm`;
+      default:
+        return constraint.type;
+    }
+  };
+
+  return (
+    <Card className="border-zinc-700">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Lock className="h-4 w-4 text-primary" />
+          Restricciones ({constraints.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-3 space-y-3">
+        {/* BOTONES PARA AGREGAR RESTRICCIONES */}
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">
+            Agregar Restricción {selectedNodes.length > 0 && `(${selectedNodes.length} nodos)`}
+          </Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={() => addConstraint('fixed')}
+              disabled={!canAddFixed}
+              size="sm"
+              variant="secondary"
+              className="h-8 text-xs gap-1"
+              title="Fijar nodo(s) seleccionado(s)"
+            >
+              <Lock className="h-3 w-3" />
+              Fijo
+            </Button>
+            <Button
+              onClick={() => addConstraint('horizontal')}
+              disabled={!canAddHorizontal}
+              size="sm"
+              variant="secondary"
+              className="h-8 text-xs gap-1"
+              title="Vincular nodos en movimiento horizontal"
+            >
+              <ArrowLeftRight className="h-3 w-3" />
+              Horizontal
+            </Button>
+            <Button
+              onClick={() => addConstraint('vertical')}
+              disabled={!canAddVertical}
+              size="sm"
+              variant="secondary"
+              className="h-8 text-xs gap-1"
+              title="Vincular nodos en movimiento vertical"
+            >
+              <ArrowUpDown className="h-3 w-3" />
+              Vertical
+            </Button>
+            <Button
+              onClick={() => addConstraint('distance')}
+              disabled={!canAddDistance}
+              size="sm"
+              variant="secondary"
+              className="h-8 text-xs gap-1"
+              title="Mantener distancia entre 2 nodos"
+            >
+              <Ruler className="h-3 w-3" />
+              Distancia
+            </Button>
+          </div>
+          {selectedNodes.length === 0 && (
+            <div className="text-[10px] text-muted-foreground text-center py-2">
+              Selecciona nodos para agregar restricciones
+            </div>
+          )}
+        </div>
+
+        {/* LISTA DE RESTRICCIONES */}
+        {constraints.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-[10px] uppercase font-bold text-zinc-400">
+              Restricciones Activas
+            </Label>
+            <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+              {constraints.map(constraint => (
+                <div
+                  key={constraint.id}
+                  className={`bg-muted/50 border rounded p-2 flex items-center gap-2 ${
+                    !constraint.enabled ? 'opacity-50' : ''
+                  }`}
+                >
+                  <div className="flex-1 flex items-center gap-2">
+                    {getConstraintIcon(constraint.type)}
+                    <span className="text-[10px] font-mono">
+                      {getConstraintLabel(constraint)}
+                    </span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      onClick={() => onToggleConstraint(constraint.id)}
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0"
+                      title={constraint.enabled ? 'Desactivar' : 'Activar'}
+                    >
+                      {constraint.enabled ? '👁️' : '👁️‍🗨️'}
+                    </Button>
+                    <Button
+                      onClick={() => onRemoveConstraint(constraint.id)}
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// --- Panel de Dimensiones ---
+interface DimensionsPanelProps {
+  dimensions: Dimension[];
+  selectedNodes: string[];
+  selectedLines: Array<{ from: string; to: string }>;
+  vertices: Record<string, Vertex2D>;
+  onAddDimension: (dimension: Omit<Dimension, 'id'>) => void;
+  onUpdateDimension: (id: string, value: number) => void;
+  onRemoveDimension: (id: string) => void;
+  onToggleDimensionParameter: (id: string) => void;
+}
+
+function DimensionsPanel({
+  dimensions,
+  selectedNodes,
+  selectedLines,
+  vertices,
+  onAddDimension,
+  onUpdateDimension,
+  onRemoveDimension,
+  onToggleDimensionParameter
+}: DimensionsPanelProps) {
+  const canAddLinear = selectedNodes.length === 2;
+  const canAddAngular = selectedLines.length === 2;
+
+  const addDimension = (type: Dimension['type']) => {
+    if (type === 'linear' && selectedNodes.length === 2) {
+      const [nodeA, nodeB] = selectedNodes;
+      const posA = vertices[nodeA];
+      const posB = vertices[nodeB];
+
+      if (posA && posB) {
+        const dist = Math.sqrt(
+          Math.pow(posB.x - posA.x, 2) + Math.pow(posB.y - posA.y, 2)
+        );
+
+        onAddDimension({
+          type: 'linear',
+          elements: {
+            nodes: [nodeA, nodeB]
+          },
+          value: Number(dist.toFixed(1)),
+          isParameter: false
+        });
+        toast.success(`Dimensión lineal: ${dist.toFixed(1)}cm`);
+      }
+    } else if (type === 'angular' && selectedLines.length === 2) {
+      const [line1, line2] = selectedLines;
+
+      // Calcular ángulo actual entre las líneas
+      const pos1A = vertices[line1.from];
+      const pos1B = vertices[line1.to];
+      const pos2A = vertices[line2.from];
+      const pos2B = vertices[line2.to];
+
+      if (pos1A && pos1B && pos2A && pos2B) {
+        const angle1 = Math.atan2(pos1B.y - pos1A.y, pos1B.x - pos1A.x);
+        const angle2 = Math.atan2(pos2B.y - pos2A.y, pos2B.x - pos2A.x);
+        let angleDiff = angle2 - angle1;
+
+        // Normalizar a rango [-π, π]
+        while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+        while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+        // Asegurar que siempre sea el ángulo interno (≤ 180°)
+        let angleDegrees = Math.abs((angleDiff * 180) / Math.PI);
+        if (angleDegrees > 180) {
+          angleDegrees = 360 - angleDegrees;
+        }
+
+        onAddDimension({
+          type: 'angular',
+          elements: {
+            lines: [line1, line2]
+          },
+          value: Number(angleDegrees.toFixed(1)),
+          isParameter: false
+        });
+        toast.success(`Dimensión angular: ${angleDegrees.toFixed(1)}°`);
+      }
+    }
+  };
+
+  const getDimensionIcon = (type: Dimension['type']) => {
+    switch (type) {
+      case 'linear': return <Ruler className="h-3 w-3" />;
+      case 'horizontal': return <ArrowLeftRight className="h-3 w-3" />;
+      case 'vertical': return <ArrowUpDown className="h-3 w-3" />;
+      default: return <Ruler className="h-3 w-3" />;
+    }
+  };
+
+  const getDimensionLabel = (dimension: Dimension) => {
+    const value = typeof dimension.value === 'number'
+      ? dimension.value.toFixed(1)
+      : dimension.value;
+
+    if (dimension.elements.nodes) {
+      return `${dimension.type}: ${dimension.elements.nodes.join(' ↔ ')} = ${value}cm`;
+    }
+    return `${dimension.type}: ${value}`;
+  };
+
+  return (
+    <Card className="border-zinc-700">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Ruler className="h-4 w-4 text-primary" />
+          Dimensiones ({dimensions.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-3 space-y-3">
+        {/* BOTONES PARA AGREGAR DIMENSIONES */}
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">
+            Agregar Dimensión
+            {selectedNodes.length > 0 && ` (${selectedNodes.length} nodos)`}
+            {selectedLines.length > 0 && ` (${selectedLines.length} líneas)`}
+          </Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={() => addDimension('linear')}
+              disabled={!canAddLinear}
+              size="sm"
+              variant="secondary"
+              className="h-8 text-xs gap-1"
+              title="Dimensión lineal entre 2 nodos"
+            >
+              <Ruler className="h-3 w-3" />
+              Lineal
+            </Button>
+            <Button
+              onClick={() => addDimension('angular')}
+              disabled={!canAddAngular}
+              size="sm"
+              variant="secondary"
+              className="h-8 text-xs gap-1"
+              title="Ángulo entre 2 líneas"
+            >
+              <RotateCw className="h-3 w-3" />
+              Angular
+            </Button>
+          </div>
+          {selectedNodes.length === 0 && selectedLines.length === 0 && (
+            <div className="text-[10px] text-muted-foreground text-center py-2">
+              Selecciona 2 nodos o 2 líneas para dimensionar
+            </div>
+          )}
+        </div>
+
+        {/* LISTA DE DIMENSIONES */}
+        {dimensions.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-[10px] uppercase font-bold text-zinc-400">
+              Dimensiones Activas
+            </Label>
+            <div className="space-y-2 max-h-[250px] overflow-y-auto">
+              {dimensions.map(dimension => {
+                const currentValue = constraintSolver.calculateDimensionValue(dimension, vertices);
+                const targetValue = typeof dimension.value === 'number' ? dimension.value : 0;
+
+                return (
+                  <div
+                    key={dimension.id}
+                    className="bg-muted/50 border rounded p-2 space-y-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 flex items-center gap-2">
+                        {getDimensionIcon(dimension.type)}
+                        <span className="text-[10px] font-mono">
+                          {getDimensionLabel(dimension)}
+                        </span>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          onClick={() => onToggleDimensionParameter(dimension.id)}
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10px]"
+                          title={dimension.isParameter ? 'Remover de parámetros' : 'Convertir en parámetro'}
+                        >
+                          {dimension.isParameter ? '📌' : '📍'}
+                        </Button>
+                        <Button
+                          onClick={() => onRemoveDimension(dimension.id)}
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* CONTROL DE VALOR */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[9px] text-muted-foreground">
+                        <span>Actual: {currentValue.toFixed(1)}cm</span>
+                        <span>Objetivo: {targetValue.toFixed(1)}cm</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={targetValue}
+                          onChange={(e) => {
+                            const newValue = parseFloat(e.target.value);
+                            if (!isNaN(newValue)) {
+                              onUpdateDimension(dimension.id, newValue);
+                            }
+                          }}
+                          className="h-7 text-xs font-mono"
+                        />
+                        <Button
+                          onClick={() => {
+                            // Aplicar dimensión
+                            onUpdateDimension(dimension.id, targetValue);
+                          }}
+                          size="sm"
+                          variant="default"
+                          className="h-7 px-2 text-xs"
+                          title="Aplicar dimensión"
+                        >
+                          Aplicar
+                        </Button>
+                      </div>
+                    </div>
+
+                    {dimension.isParameter && (
+                      <div className="bg-primary/10 border border-primary/30 rounded p-1.5">
+                        <Label className="text-[9px] text-primary">
+                          Nombre del parámetro
+                        </Label>
+                        <Input
+                          type="text"
+                          value={dimension.label || ''}
+                          onChange={() => {
+                            // TODO: Implementar actualización de label
+                          }}
+                          placeholder="Ej: longitud, ancho, radio"
+                          className="h-6 text-[10px] mt-1"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // --- Editor Interactivo Fabric.js ---
 interface FabricEditorProps {
   geometry: any;
@@ -478,14 +880,28 @@ interface FabricEditorProps {
   onNodeMove: (nodeId: string, x: number, y: number) => void;
   onNodeAdd: (perimeterId: string, afterNodeId: string, x: number, y: number) => void;
   selectedNodes: string[];
-  onSelectionChange: (nodes: string[]) => void;
+  selectedLines: Array<{ from: string; to: string }>;
+  onSelectionChange: (nodes: string[], lines: Array<{ from: string; to: string }>) => void;
+  constraints?: Constraint[];
+  dimensions?: Dimension[];
 }
 
-function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd, selectedNodes, onSelectionChange }: FabricEditorProps) {
+function FabricGeometryEditor({
+  geometry,
+  params,
+  onNodeMove,
+  onNodeAdd,
+  selectedNodes,
+  selectedLines,
+  onSelectionChange,
+  constraints = [],
+  dimensions = []
+}: FabricEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const nodeCircles = useRef<Map<string, fabric.Circle>>(new Map());
+  const edgeLines = useRef<Map<string, fabric.Line>>(new Map());
 
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
@@ -497,26 +913,34 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd, selecte
     // Usar el menor valor para mantener canvas cuadrado
     const canvasSize = Math.min(containerWidth - 32, containerHeight - 32);
 
-    // Obtener devicePixelRatio para pantallas HiDPI/Retina
+    // Configurar HiDPI manualmente para canvas nativo
     const dpr = window.devicePixelRatio || 1;
-
-    // Configurar canvas nativo para alta resolución
     const canvasEl = canvasRef.current;
+
+    // Establecer tamaño físico del canvas (píxeles del dispositivo)
     canvasEl.width = canvasSize * dpr;
     canvasEl.height = canvasSize * dpr;
+
+    // Establecer tamaño CSS (píxeles lógicos)
     canvasEl.style.width = `${canvasSize}px`;
     canvasEl.style.height = `${canvasSize}px`;
 
-    // Inicializar Fabric canvas
+    // Inicializar Fabric canvas con el tamaño lógico
     const canvas = new fabric.Canvas(canvasEl, {
       width: canvasSize,
       height: canvasSize,
       backgroundColor: '#ffffff',
+      selection: false, // Desactivar selección de área
     });
 
-    // Escalar el contexto para compensar el devicePixelRatio
-    const ctx = canvas.getContext();
-    ctx.scale(dpr, dpr);
+    // Escalar el contexto para HiDPI
+    if (dpr !== 1) {
+      const ctx = canvas.getContext();
+      ctx.scale(dpr, dpr);
+    }
+
+    // Configurar Fabric para que use el tamaño lógico
+    canvas.setDimensions({ width: canvasSize, height: canvasSize });
 
     fabricRef.current = canvas;
 
@@ -531,6 +955,7 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd, selecte
     const canvas = fabricRef.current;
     canvas.clear();
     nodeCircles.current.clear();
+    edgeLines.current.clear();
 
     // Redibujar el fondo
     canvas.backgroundColor = '#ffffff';
@@ -583,6 +1008,12 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd, selecte
 
         if (!fromVertex || !toVertex) continue;
 
+        // Verificar si esta línea está seleccionada
+        const isLineSelected = selectedLines.some(
+          l => (l.from === element.from && l.to === element.to) ||
+               (l.from === element.to && l.to === element.from)
+        );
+
         // Línea principal
         const line = new fabric.Line(
           [
@@ -592,9 +1023,13 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd, selecte
             toCanvasY(toVertex.y),
           ],
           {
-            stroke: strokeColor,
-            strokeWidth: 2,
-            selectable: false,
+            stroke: isLineSelected ? '#facc15' : strokeColor,
+            strokeWidth: isLineSelected ? 4 : 2,
+            selectable: true, // Permitir selección
+            hasControls: false,
+            hasBorders: false,
+            lockMovementX: true,
+            lockMovementY: true,
             hoverCursor: 'pointer',
             data: {
               type: 'edge',
@@ -605,16 +1040,58 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd, selecte
           }
         );
 
-        // Evento para agregar nodo en el medio
-        line.on('mousedown', (e) => {
-          if (e.e.ctrlKey || e.e.metaKey) {
-            const midX = fromCanvasX((line.x1! + line.x2!) / 2);
-            const midY = fromCanvasY((line.y1! + line.y2!) / 2);
-            onNodeAdd(contour.id, element.from, midX, midY);
-            toast.success('Nodo agregado. Ctrl+Click en línea para agregar más');
+        // Hover effect
+        line.on('mouseover', () => {
+          if (!isLineSelected) {
+            line.set({ strokeWidth: 4, stroke: '#facc15' });
+            canvas.renderAll();
           }
         });
 
+        line.on('mouseout', () => {
+          if (!isLineSelected) {
+            line.set({ strokeWidth: 2, stroke: strokeColor });
+            canvas.renderAll();
+          }
+        });
+
+        // Click para seleccionar línea
+        line.on('mousedown', (event) => {
+          const lineData = { from: element.from, to: element.to };
+
+          if (event.e.ctrlKey || event.e.metaKey) {
+            // Ctrl+Click: toggle selección de línea
+            event.e.preventDefault();
+            const isAlreadySelected = selectedLines.some(
+              l => (l.from === lineData.from && l.to === lineData.to) ||
+                   (l.from === lineData.to && l.to === lineData.from)
+            );
+
+            if (isAlreadySelected) {
+              const newLines = selectedLines.filter(
+                l => !(l.from === lineData.from && l.to === lineData.to) &&
+                     !(l.from === lineData.to && l.to === lineData.from)
+              );
+              onSelectionChange(selectedNodes, newLines);
+            } else {
+              onSelectionChange(selectedNodes, [...selectedLines, lineData]);
+            }
+          } else {
+            // Click normal: seleccionar solo esta línea
+            onSelectionChange([], [lineData]);
+          }
+        });
+
+        // Evento para agregar nodo en el medio (doble-click)
+        line.on('mousedblclick', () => {
+          const midX = fromCanvasX((line.x1! + line.x2!) / 2);
+          const midY = fromCanvasY((line.y1! + line.y2!) / 2);
+          onNodeAdd(contour.id, element.from, midX, midY);
+          toast.success('Nodo agregado. Doble-click en línea para agregar más');
+        });
+
+        const lineKey = `${element.from}-${element.to}`;
+        edgeLines.current.set(lineKey, line);
         canvas.add(line);
       }
     }
@@ -635,6 +1112,7 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd, selecte
         strokeWidth: 2,
         originX: 'center',
         originY: 'center',
+        selectable: true, // Importante: permite arrastrar
         hasControls: false,
         hasBorders: false,
         lockScalingX: true,
@@ -657,24 +1135,29 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd, selecte
 
       // Evento de click para selección múltiple
       circle.on('mousedown', (e) => {
-        if (e.e.ctrlKey || e.e.metaKey) {
-          // Ctrl+Click para toggle selección
-          e.e.preventDefault();
+        const event = e.e as MouseEvent;
+        if (event.ctrlKey || event.metaKey) {
+          // Ctrl+Click para toggle selección (no mover)
+          event.preventDefault();
+          event.stopPropagation();
+          circle.set({ selectable: false });
           const newSelection = selectedNodes.includes(id)
             ? selectedNodes.filter(n => n !== id)
             : [...selectedNodes, id];
-          onSelectionChange(newSelection);
+          onSelectionChange(newSelection, selectedLines);
+          // Restaurar selectable después de un frame
+          setTimeout(() => {
+            circle.set({ selectable: true });
+          }, 10);
+          return false;
         } else if (!selectedNodes.includes(id)) {
-          // Click normal selecciona solo este nodo
-          onSelectionChange([id]);
+          // Click normal selecciona solo este nodo (deseleccionar líneas)
+          onSelectionChange([id], []);
         }
       });
 
-      circle.on('moving', (e) => {
-        const newX = fromCanvasX(circle.left!);
-        const newY = fromCanvasY(circle.top!);
-        onNodeMove(id, Number(newX.toFixed(1)), Number(newY.toFixed(1)));
-
+      // Evento durante el arrastre (solo visual, no actualiza estado)
+      circle.on('moving', () => {
         // Mover la etiqueta junto al círculo
         text.set({
           left: circle.left! + 10,
@@ -683,8 +1166,8 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd, selecte
 
         // Actualizar líneas conectadas
         canvas.getObjects('line').forEach((obj) => {
-          const line = obj as fabric.Line;
-          const data = line.data as any;
+          const line = obj as fabric.Line & { data?: any };
+          const data = line.data;
           if (data?.type === 'edge') {
             if (data.fromNode === id) {
               line.set({ x1: circle.left, y1: circle.top });
@@ -698,13 +1181,392 @@ function FabricGeometryEditor({ geometry, params, onNodeMove, onNodeAdd, selecte
         canvas.renderAll();
       });
 
+      // Cuando termina el arrastre, actualizar el estado
+      circle.on('modified', () => {
+        const newX = fromCanvasX(circle.left!);
+        const newY = fromCanvasY(circle.top!);
+
+        // Validar movimiento con el solver de restricciones
+        const result = constraintSolver.solveNodeMove(
+          id,
+          Number(newX.toFixed(1)),
+          Number(newY.toFixed(1)),
+          evaluatedVertices,
+          constraints
+        );
+
+        if (result.blocked) {
+          // Movimiento bloqueado, revertir a posición original
+          circle.set({
+            left: toCanvasX(evaluatedVertices[id].x),
+            top: toCanvasY(evaluatedVertices[id].y)
+          });
+          canvas.renderAll();
+          toast.error(result.reason || 'Movimiento bloqueado por restricción');
+        } else {
+          // Aplicar el movimiento y las propagaciones
+          Object.entries(result.updates).forEach(([nodeId, pos]) => {
+            onNodeMove(nodeId, Number(pos.x.toFixed(1)), Number(pos.y.toFixed(1)));
+          });
+        }
+      });
+
       nodeCircles.current.set(id, circle);
       canvas.add(circle);
       canvas.add(text);
     }
 
+    // ============================================================================
+    // VISUALIZAR RESTRICCIONES (SÍMBOLOS CAD)
+    // ============================================================================
+
+    constraints.forEach(constraint => {
+      if (!constraint.enabled) return;
+
+      if (constraint.type === 'fixed' && constraint.nodes[0]) {
+        const nodeId = constraint.nodes[0];
+        const vertex = evaluatedVertices[nodeId];
+        if (!vertex) return;
+
+        const cx = toCanvasX(vertex.x);
+        const cy = toCanvasY(vertex.y);
+
+        // Símbolo de candado para nodo fijo
+        const lockSize = 10;
+        const lockRect = new fabric.Rect({
+          left: cx - lockSize / 2,
+          top: cy - lockSize - 15,
+          width: lockSize,
+          height: lockSize * 0.7,
+          fill: 'transparent',
+          stroke: '#ef4444',
+          strokeWidth: 2,
+          selectable: false,
+          evented: false,
+        });
+
+        const lockArc = new fabric.Circle({
+          left: cx,
+          top: cy - lockSize - 15,
+          radius: lockSize / 2.5,
+          fill: 'transparent',
+          stroke: '#ef4444',
+          strokeWidth: 2,
+          startAngle: 0,
+          endAngle: Math.PI,
+          originX: 'center',
+          originY: 'center',
+          selectable: false,
+          evented: false,
+        });
+
+        canvas.add(lockRect);
+        canvas.add(lockArc);
+      }
+
+      if ((constraint.type === 'horizontal' || constraint.type === 'vertical') && constraint.nodes.length >= 2) {
+        const [nodeA, nodeB] = constraint.nodes;
+        const posA = evaluatedVertices[nodeA];
+        const posB = evaluatedVertices[nodeB];
+
+        if (!posA || !posB) return;
+
+        const cx1 = toCanvasX(posA.x);
+        const cy1 = toCanvasY(posA.y);
+        const cx2 = toCanvasX(posB.x);
+        const cy2 = toCanvasY(posB.y);
+
+        // Línea de conexión punteada
+        const connectionLine = new fabric.Line(
+          [cx1, cy1, cx2, cy2],
+          {
+            stroke: constraint.type === 'horizontal' ? '#3b82f6' : '#f59e0b',
+            strokeWidth: 1,
+            strokeDashArray: [5, 5],
+            selectable: false,
+            evented: false,
+            opacity: 0.5,
+          }
+        );
+
+        canvas.add(connectionLine);
+
+        // Símbolo de restricción
+        const midX = (cx1 + cx2) / 2;
+        const midY = (cy1 + cy2) / 2;
+
+        const symbolText = new fabric.Text(
+          constraint.type === 'horizontal' ? '↔' : '↕',
+          {
+            left: midX,
+            top: midY - 8,
+            fontSize: 16,
+            fill: constraint.type === 'horizontal' ? '#3b82f6' : '#f59e0b',
+            fontWeight: 'bold',
+            originX: 'center',
+            originY: 'center',
+            selectable: false,
+            evented: false,
+          }
+        );
+
+        canvas.add(symbolText);
+      }
+    });
+
+    // ============================================================================
+    // VISUALIZAR DIMENSIONES (COTAS)
+    // ============================================================================
+
+    dimensions.forEach(dimension => {
+      if (dimension.type === 'linear' && dimension.elements.nodes) {
+        const [nodeA, nodeB] = dimension.elements.nodes;
+        const posA = evaluatedVertices[nodeA];
+        const posB = evaluatedVertices[nodeB];
+
+        if (!posA || !posB) return;
+
+        const cx1 = toCanvasX(posA.x);
+        const cy1 = toCanvasY(posA.y);
+        const cx2 = toCanvasX(posB.x);
+        const cy2 = toCanvasY(posB.y);
+
+        const dx = cx2 - cx1;
+        const dy = cy2 - cy1;
+        const angle = Math.atan2(dy, dx);
+
+        // Color de las dimensiones: cyan/violeta
+        const dimColor = '#a855f7'; // Violeta
+
+        // Línea de cota (directamente de nodo a nodo)
+        const dimensionLine = new fabric.Line(
+          [cx1, cy1, cx2, cy2],
+          {
+            stroke: dimColor,
+            strokeWidth: 2,
+            strokeDashArray: [6, 4],
+            selectable: false,
+            evented: false,
+          }
+        );
+
+        // Flechas en los extremos (sobre los nodos)
+        const arrowSize = 10;
+
+        const arrow1 = new fabric.Polygon(
+          [
+            { x: cx1, y: cy1 },
+            { x: cx1 + arrowSize * Math.cos(angle - Math.PI / 6), y: cy1 + arrowSize * Math.sin(angle - Math.PI / 6) },
+            { x: cx1 + arrowSize * Math.cos(angle + Math.PI / 6), y: cy1 + arrowSize * Math.sin(angle + Math.PI / 6) },
+          ],
+          {
+            fill: dimColor,
+            selectable: false,
+            evented: false,
+          }
+        );
+
+        const arrow2 = new fabric.Polygon(
+          [
+            { x: cx2, y: cy2 },
+            { x: cx2 - arrowSize * Math.cos(angle - Math.PI / 6), y: cy2 - arrowSize * Math.sin(angle - Math.PI / 6) },
+            { x: cx2 - arrowSize * Math.cos(angle + Math.PI / 6), y: cy2 - arrowSize * Math.sin(angle + Math.PI / 6) },
+          ],
+          {
+            fill: dimColor,
+            selectable: false,
+            evented: false,
+          }
+        );
+
+        // Texto con el valor (en el medio, con offset arriba)
+        const value = typeof dimension.value === 'number'
+          ? dimension.value.toFixed(1)
+          : dimension.value;
+
+        const label = dimension.isParameter && dimension.label
+          ? `${dimension.label} = ${value}cm`
+          : `${value}cm`;
+
+        // Calcular posición del texto con offset perpendicular pequeño
+        const midX = (cx1 + cx2) / 2;
+        const midY = (cy1 + cy2) / 2;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const offsetDist = 15;
+        const perpX = (-dy / length) * offsetDist;
+        const perpY = (dx / length) * offsetDist;
+
+        const dimensionText = new fabric.Text(label, {
+          left: midX + perpX,
+          top: midY + perpY,
+          fontSize: 11,
+          fill: dimColor,
+          fontFamily: 'monospace',
+          fontWeight: 'bold',
+          originX: 'center',
+          originY: 'center',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          selectable: false,
+          evented: false,
+        });
+
+        canvas.add(dimensionLine);
+        canvas.add(arrow1);
+        canvas.add(arrow2);
+        canvas.add(dimensionText);
+      } else if (dimension.type === 'angular' && dimension.elements.lines && dimension.elements.lines.length === 2) {
+        // Dimensión angular entre dos líneas
+        const [line1, line2] = dimension.elements.lines;
+
+        const pos1A = evaluatedVertices[line1.from];
+        const pos1B = evaluatedVertices[line1.to];
+        const pos2A = evaluatedVertices[line2.from];
+        const pos2B = evaluatedVertices[line2.to];
+
+        if (!pos1A || !pos1B || !pos2A || !pos2B) return;
+
+        // Convertir a coordenadas canvas
+        const l1x1 = toCanvasX(pos1A.x);
+        const l1y1 = toCanvasY(pos1A.y);
+        const l1x2 = toCanvasX(pos1B.x);
+        const l1y2 = toCanvasY(pos1B.y);
+        const l2x1 = toCanvasX(pos2A.x);
+        const l2y1 = toCanvasY(pos2A.y);
+        const l2x2 = toCanvasX(pos2B.x);
+        const l2y2 = toCanvasY(pos2B.y);
+
+        // Calcular ángulos
+        const angle1 = Math.atan2(l1y2 - l1y1, l1x2 - l1x1);
+        const angle2 = Math.atan2(l2y2 - l2y1, l2x2 - l2x1);
+
+        // Calcular punto de intersección de las dos líneas
+        const denominator = (l1x1 - l1x2) * (l2y1 - l2y2) - (l1y1 - l1y2) * (l2x1 - l2x2);
+        let centerX: number;
+        let centerY: number;
+
+        if (Math.abs(denominator) < 0.001) {
+          // Las líneas son paralelas, usar punto medio
+          centerX = (l1x1 + l1x2 + l2x1 + l2x2) / 4;
+          centerY = (l1y1 + l1y2 + l2y1 + l2y2) / 4;
+        } else {
+          // Calcular intersección
+          const t = ((l1x1 - l2x1) * (l2y1 - l2y2) - (l1y1 - l2y1) * (l2x1 - l2x2)) / denominator;
+          centerX = l1x1 + t * (l1x2 - l1x1);
+          centerY = l1y1 + t * (l1y2 - l1y1);
+        }
+
+        // Radio del arco
+        const arcRadius = 40;
+        const dimColor = '#a855f7';
+
+        // Calcular la diferencia de ángulo y normalizar para que siempre sea el ángulo interno
+        let angleDiff = angle2 - angle1;
+        while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+        while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+        // Determinar ángulos de inicio y fin para el arco
+        let startAngle = angle1;
+        let endAngle = angle2;
+
+        // Si el ángulo es mayor a 180°, invertir la dirección
+        if (Math.abs(angleDiff) > Math.PI) {
+          [startAngle, endAngle] = [endAngle, startAngle];
+        }
+
+        // Verificar si el ángulo es cercano a 90° (±5°)
+        const angleValue = typeof dimension.value === 'number' ? dimension.value : 0;
+        const isRightAngle = Math.abs(angleValue - 90) < 5;
+
+        if (isRightAngle) {
+          // Dibujar un pequeño cuadrado para ángulos rectos
+          const squareSize = arcRadius * 0.6;
+          const dx1 = Math.cos(startAngle) * squareSize;
+          const dy1 = Math.sin(startAngle) * squareSize;
+          const dx2 = Math.cos(endAngle) * squareSize;
+          const dy2 = Math.sin(endAngle) * squareSize;
+
+          const square = new fabric.Polyline([
+            { x: centerX, y: centerY },
+            { x: centerX + dx1, y: centerY + dy1 },
+            { x: centerX + dx1 + dx2, y: centerY + dy1 + dy2 },
+            { x: centerX + dx2, y: centerY + dy2 },
+            { x: centerX, y: centerY }
+          ], {
+            fill: 'transparent',
+            stroke: dimColor,
+            strokeWidth: 2,
+            selectable: false,
+            evented: false,
+          });
+
+          canvas.add(square);
+        } else {
+          // Dibujar arco usando Path
+          const startX = centerX + arcRadius * Math.cos(startAngle);
+          const startY = centerY + arcRadius * Math.sin(startAngle);
+          const endX = centerX + arcRadius * Math.cos(endAngle);
+          const endY = centerY + arcRadius * Math.sin(endAngle);
+
+          // Determinar si el arco debe ser grande o pequeño
+          const largeArcFlag = Math.abs(angleDiff) > Math.PI ? 1 : 0;
+          const sweepFlag = angleDiff > 0 ? 1 : 0;
+
+          const pathData = `M ${startX} ${startY} A ${arcRadius} ${arcRadius} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`;
+
+          const arc = new fabric.Path(pathData, {
+            fill: '',
+            stroke: dimColor,
+            strokeWidth: 2,
+            strokeDashArray: [4, 3],
+            selectable: false,
+            evented: false,
+          });
+
+          canvas.add(arc);
+        }
+
+        // Texto con el ángulo
+        const value = typeof dimension.value === 'number'
+          ? dimension.value.toFixed(1)
+          : dimension.value;
+
+        const label = dimension.isParameter && dimension.label
+          ? `${dimension.label} = ${value}°`
+          : `${value}°`;
+
+        // Calcular el ángulo medio correctamente
+        const midAngle = startAngle + angleDiff / 2;
+        const textRadius = arcRadius + 15;
+
+        const angleText = new fabric.Text(label, {
+          left: centerX + textRadius * Math.cos(midAngle),
+          top: centerY + textRadius * Math.sin(midAngle),
+          fontSize: 11,
+          fill: dimColor,
+          fontFamily: 'monospace',
+          fontWeight: 'bold',
+          originX: 'center',
+          originY: 'center',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          selectable: false,
+          evented: false,
+        });
+
+        canvas.add(angleText);
+      }
+    });
+
     canvas.renderAll();
-  }, [geometry, params, onNodeMove, onNodeAdd]);
+
+    // Click en el fondo del canvas para deseleccionar
+    canvas.on('mouse:down', (e) => {
+      if (!e.target) {
+        // Click en el fondo (no en ningún objeto)
+        onSelectionChange([], []);
+      }
+    });
+
+  }, [geometry, params, onNodeMove, onNodeAdd, selectedNodes, selectedLines, onSelectionChange, constraints, dimensions]);
 
   return (
     <div
@@ -1121,6 +1983,9 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
   const [jsonParseError, setJsonParseError] = useState<string>("");
   const [show3DModal, setShow3DModal] = useState(false);
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
+  const [selectedLines, setSelectedLines] = useState<Array<{ from: string; to: string }>>([]);
+  const [constraints, setConstraints] = useState<Constraint[]>([]);
+  const [dimensions, setDimensions] = useState<Dimension[]>([]);
 
   useEffect(() => {
     if (template) {
@@ -1131,12 +1996,16 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
       setJsonContent(JSON.stringify(content, null, 2));
       setPreviewData(content);
 
-      // Validar geometría
+      // Cargar constraints y dimensions desde geometry
       if (content.geometry) {
         const validation = validateGeometryDefinition(content.geometry);
         setValidationErrors(validation.errors);
+        setConstraints(content.geometry.constraints || []);
+        setDimensions(content.geometry.dimensions || []);
       } else {
         setValidationErrors([]);
+        setConstraints([]);
+        setDimensions([]);
       }
       setJsonParseError("");
     } else {
@@ -1149,6 +2018,8 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
         geometry: {
           vertices: {},
           contours: [],
+          constraints: [],
+          dimensions: [],
           extrusion: {
             height: "params.grosor",
             bevel: true,
@@ -1165,6 +2036,8 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
       setPreviewData(defaultContent);
       setValidationErrors([]);
       setJsonParseError("");
+      setConstraints([]);
+      setDimensions([]);
     }
   }, [template]);
 
@@ -1192,7 +2065,11 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
   const handleGeometryChange = (newGeometry: any) => {
     const updated = {
       ...previewData,
-      geometry: newGeometry,
+      geometry: {
+        ...newGeometry,
+        constraints,
+        dimensions
+      },
     };
     setPreviewData(updated);
     setJsonContent(JSON.stringify(updated, null, 2));
@@ -1200,6 +2077,141 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
     // Validar
     const validation = validateGeometryDefinition(newGeometry);
     setValidationErrors(validation.errors);
+  };
+
+  // ============================================================================
+  // HANDLERS DE RESTRICCIONES
+  // ============================================================================
+
+  const handleAddConstraint = (constraint: Omit<Constraint, 'id'>) => {
+    const newConstraint: Constraint = {
+      ...constraint,
+      id: nanoid()
+    };
+    const updatedConstraints = [...constraints, newConstraint];
+    setConstraints(updatedConstraints);
+    updateGeometryWithConstraintsAndDimensions(updatedConstraints, dimensions);
+  };
+
+  const handleToggleConstraint = (id: string) => {
+    const updatedConstraints = constraints.map(c =>
+      c.id === id ? { ...c, enabled: !c.enabled } : c
+    );
+    setConstraints(updatedConstraints);
+    updateGeometryWithConstraintsAndDimensions(updatedConstraints, dimensions);
+  };
+
+  const handleRemoveConstraint = (id: string) => {
+    const updatedConstraints = constraints.filter(c => c.id !== id);
+    setConstraints(updatedConstraints);
+    updateGeometryWithConstraintsAndDimensions(updatedConstraints, dimensions);
+    toast.success('Restricción eliminada');
+  };
+
+  // ============================================================================
+  // HANDLERS DE DIMENSIONES
+  // ============================================================================
+
+  const handleAddDimension = (dimension: Omit<Dimension, 'id'>) => {
+    const newDimension: Dimension = {
+      ...dimension,
+      id: nanoid()
+    };
+    const updatedDimensions = [...dimensions, newDimension];
+    setDimensions(updatedDimensions);
+    updateGeometryWithConstraintsAndDimensions(constraints, updatedDimensions);
+  };
+
+  const handleUpdateDimension = (id: string, value: number) => {
+    const dimension = dimensions.find(d => d.id === id);
+    if (!dimension) return;
+
+    // Actualizar el valor de la dimensión
+    const updatedDimensions = dimensions.map(d =>
+      d.id === id ? { ...d, value } : d
+    );
+    setDimensions(updatedDimensions);
+
+    // Aplicar la dimensión a la geometría
+    if (!previewData?.geometry) return;
+
+    const evaluatedVertices: Record<string, Vertex2D> = {};
+    for (const [nodeId, vertex] of Object.entries(previewData.geometry.vertices || {})) {
+      const v = vertex as any;
+      evaluatedVertices[nodeId] = {
+        x: evaluateExpression(v.x, previewData.params || {}),
+        y: evaluateExpression(v.y, previewData.params || {})
+      };
+    }
+
+    const result = constraintSolver.applyDimension(
+      { ...dimension, value },
+      value,
+      evaluatedVertices,
+      constraints
+    );
+
+    if (result.success && Object.keys(result.updates).length > 0) {
+      const newVertices = { ...previewData.geometry.vertices };
+      Object.entries(result.updates).forEach(([nodeId, pos]) => {
+        newVertices[nodeId] = {
+          x: Number(pos.x.toFixed(1)),
+          y: Number(pos.y.toFixed(1))
+        };
+      });
+
+      const newGeometry = {
+        ...previewData.geometry,
+        vertices: newVertices,
+        constraints,
+        dimensions: updatedDimensions
+      };
+
+      handleGeometryChange(newGeometry);
+      toast.success('Dimensión aplicada');
+    } else if (!result.success) {
+      toast.error(result.reason || 'No se pudo aplicar la dimensión');
+      updateGeometryWithConstraintsAndDimensions(constraints, updatedDimensions);
+    } else {
+      updateGeometryWithConstraintsAndDimensions(constraints, updatedDimensions);
+    }
+  };
+
+  const handleRemoveDimension = (id: string) => {
+    const updatedDimensions = dimensions.filter(d => d.id !== id);
+    setDimensions(updatedDimensions);
+    updateGeometryWithConstraintsAndDimensions(constraints, updatedDimensions);
+    toast.success('Dimensión eliminada');
+  };
+
+  const handleToggleDimensionParameter = (id: string) => {
+    const updatedDimensions = dimensions.map(d =>
+      d.id === id ? { ...d, isParameter: !d.isParameter } : d
+    );
+    setDimensions(updatedDimensions);
+    updateGeometryWithConstraintsAndDimensions(constraints, updatedDimensions);
+  };
+
+  // Utilidad para actualizar la geometría con constraints y dimensions
+  const updateGeometryWithConstraintsAndDimensions = (
+    updatedConstraints: Constraint[],
+    updatedDimensions: Dimension[]
+  ) => {
+    if (!previewData?.geometry) return;
+
+    const newGeometry = {
+      ...previewData.geometry,
+      constraints: updatedConstraints,
+      dimensions: updatedDimensions
+    };
+
+    const updated = {
+      ...previewData,
+      geometry: newGeometry
+    };
+
+    setPreviewData(updated);
+    setJsonContent(JSON.stringify(updated, null, 2));
   };
 
   const handleParamChange = (key: string, value: any) => {
@@ -1473,8 +2485,8 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
       {/* LAYOUT PRINCIPAL */}
       <div className="flex gap-4 h-[calc(100vh-12rem)]">
 
-        {/* LADO IZQUIERDO: CANVAS (55%) */}
-        <div className="w-[55%] flex flex-col">
+        {/* LADO IZQUIERDO: CANVAS (68%) */}
+        <div className="w-[68%] flex flex-col">
           <Card className="border-primary/20 flex-1 flex flex-col">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -1499,7 +2511,13 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                   geometry={previewData.geometry}
                   params={previewData.params || {}}
                   selectedNodes={selectedNodes}
-                  onSelectionChange={setSelectedNodes}
+                  selectedLines={selectedLines}
+                  onSelectionChange={(nodes, lines) => {
+                    setSelectedNodes(nodes);
+                    setSelectedLines(lines);
+                  }}
+                  constraints={constraints}
+                  dimensions={dimensions}
                   onNodeMove={(nodeId, x, y) => {
                     const newVertices = { ...previewData.geometry.vertices };
                     newVertices[nodeId] = { x, y };
@@ -1540,9 +2558,55 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
           </Card>
         </div>
 
-        {/* LADO DERECHO: PANEL DE HERRAMIENTAS (45%) */}
-        <div className="w-[45%] flex flex-col overflow-hidden">
+        {/* LADO DERECHO: PANEL DE HERRAMIENTAS (32%) */}
+        <div className="w-[32%] flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+            {/* RESTRICCIONES */}
+            <ConstraintsPanel
+              constraints={constraints}
+              selectedNodes={selectedNodes}
+              vertices={
+                previewData?.geometry?.vertices
+                  ? Object.fromEntries(
+                      Object.entries(previewData.geometry.vertices).map(([id, v]: [string, any]) => [
+                        id,
+                        {
+                          x: evaluateExpression(v.x, previewData.params || {}),
+                          y: evaluateExpression(v.y, previewData.params || {})
+                        }
+                      ])
+                    )
+                  : {}
+              }
+              onAddConstraint={handleAddConstraint}
+              onToggleConstraint={handleToggleConstraint}
+              onRemoveConstraint={handleRemoveConstraint}
+            />
+
+            {/* DIMENSIONES */}
+            <DimensionsPanel
+              dimensions={dimensions}
+              selectedNodes={selectedNodes}
+              selectedLines={selectedLines}
+              vertices={
+                previewData?.geometry?.vertices
+                  ? Object.fromEntries(
+                      Object.entries(previewData.geometry.vertices).map(([id, v]: [string, any]) => [
+                        id,
+                        {
+                          x: evaluateExpression(v.x, previewData.params || {}),
+                          y: evaluateExpression(v.y, previewData.params || {})
+                        }
+                      ])
+                    )
+                  : {}
+              }
+              onAddDimension={handleAddDimension}
+              onUpdateDimension={handleUpdateDimension}
+              onRemoveDimension={handleRemoveDimension}
+              onToggleDimensionParameter={handleToggleDimensionParameter}
+            />
+
             {/* TRANSFORMACIONES PARAMÉTRICAS */}
             <TransformationPanel
               selectedNodes={selectedNodes}
