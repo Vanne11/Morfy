@@ -1,0 +1,159 @@
+{
+  "name": "Férula Simple (Centímetros)",
+  "type": "svg_parametric",
+  "version": "2.0",
+  "description": "Ejemplo de férula simple con dimensiones en centímetros. El sistema convertirá automáticamente a mm al exportar STL.",
+  "units": "cm",
+
+  "ui_controls": [
+    {
+      "id": "longitud",
+      "label": "Longitud",
+      "type": "slider",
+      "min": 5,
+      "max": 15,
+      "step": 0.5,
+      "default": 9.0,
+      "unit": "cm",
+      "impacts": {
+        "longitud": { "operation": "set", "value": null }
+      }
+    },
+    {
+      "id": "ancho",
+      "label": "Ancho",
+      "type": "slider",
+      "min": 3,
+      "max": 10,
+      "step": 0.5,
+      "default": 6.0,
+      "unit": "cm",
+      "impacts": {
+        "ancho": { "operation": "set", "value": null }
+      }
+    },
+    {
+      "id": "grosor",
+      "label": "Grosor del Material",
+      "type": "slider",
+      "min": 0.2,
+      "max": 0.5,
+      "step": 0.05,
+      "default": 0.3,
+      "unit": "cm",
+      "impacts": {
+        "grosor": { "operation": "set", "value": null }
+      }
+    },
+    {
+      "id": "radio_esquina",
+      "label": "Redondeo de Esquinas",
+      "type": "slider",
+      "min": 0.3,
+      "max": 1.5,
+      "step": 0.1,
+      "default": 0.8,
+      "unit": "cm",
+      "impacts": {
+        "radio_esquina": { "operation": "set", "value": null }
+      }
+    }
+  ],
+
+  "params": {
+    "longitud": 9.0,
+    "ancho": 6.0,
+    "grosor": 0.3,
+    "radio_esquina": 0.8,
+    "color": "#10b981"
+  },
+
+  "geometry": {
+    "vertices": {
+      "esq_inf_izq": {
+        "x": "params.radio_esquina",
+        "y": "params.radio_esquina"
+      },
+      "esq_inf_der": {
+        "x": "params.longitud - params.radio_esquina",
+        "y": "params.radio_esquina"
+      },
+      "esq_sup_der": {
+        "x": "params.longitud - params.radio_esquina",
+        "y": "params.ancho - params.radio_esquina"
+      },
+      "esq_sup_izq": {
+        "x": "params.radio_esquina",
+        "y": "params.ancho - params.radio_esquina"
+      },
+
+      "lado_inf_der": {
+        "x": "params.longitud - params.radio_esquina",
+        "y": 0
+      },
+      "lado_der_sup": {
+        "x": "params.longitud",
+        "y": "params.ancho - params.radio_esquina"
+      },
+      "lado_sup_izq": {
+        "x": "params.radio_esquina",
+        "y": "params.ancho"
+      },
+      "lado_izq_inf": {
+        "x": 0,
+        "y": "params.radio_esquina"
+      }
+    },
+
+    "contours": [
+      {
+        "id": "exterior",
+        "type": "outer",
+        "closed": true,
+        "elements": [
+          { "type": "line", "from": "esq_inf_izq", "to": "esq_inf_der" },
+          {
+            "type": "arc",
+            "from": "esq_inf_der",
+            "to": "lado_inf_der",
+            "radius": "params.radio_esquina",
+            "clockwise": true
+          },
+          { "type": "line", "from": "lado_inf_der", "to": "esq_sup_der" },
+          {
+            "type": "arc",
+            "from": "esq_sup_der",
+            "to": "lado_der_sup",
+            "radius": "params.radio_esquina",
+            "clockwise": true
+          },
+          { "type": "line", "from": "lado_der_sup", "to": "esq_sup_izq" },
+          {
+            "type": "arc",
+            "from": "esq_sup_izq",
+            "to": "lado_sup_izq",
+            "radius": "params.radio_esquina",
+            "clockwise": true
+          },
+          { "type": "line", "from": "lado_sup_izq", "to": "esq_inf_izq" },
+          {
+            "type": "arc",
+            "from": "esq_inf_izq",
+            "to": "lado_izq_inf",
+            "radius": "params.radio_esquina",
+            "clockwise": true
+          }
+        ]
+      }
+    ],
+
+    "extrusion": {
+      "height": "params.grosor",
+      "bevel": true,
+      "bevelThickness": 0.035,
+      "bevelSize": 0.035,
+      "bevelSegments": 3,
+      "curveSegments": 16
+    }
+  }
+}

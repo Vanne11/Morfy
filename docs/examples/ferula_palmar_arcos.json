@@ -3,6 +3,7 @@
   "type": "svg_parametric",
   "version": "2.0",
   "description": "Férula palmar con bordes redondeados mediante arcos. Incluye ranuras de ventilación circulares.",
+  "units": "mm",
 
   "ui_controls": [
     {

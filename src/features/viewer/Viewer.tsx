@@ -24,7 +24,7 @@ function ExportManager() {
     const { scene } = useThree();
     useEffect(() => {
         const handleExport = (e: any) => {
-            exportToSTL(scene, e.detail.name);
+            exportToSTL(scene, e.detail.name, e.detail.units || "mm");
         };
         // @ts-ignore
         window.addEventListener("export-stl", handleExport);
@@ -35,9 +35,9 @@ function ExportManager() {
 }
 
 // --- Herramienta de Regla ---
-function MeasurementRuler({ points }: { points: THREE.Vector3[] }) {
+function MeasurementRuler({ points, units = "mm" }: { points: THREE.Vector3[], units?: string }) {
   if (points.length < 2) return null;
-  
+
   const start = points[0];
   const end = points[1];
   const distance = start.distanceTo(end);
@@ -45,10 +45,10 @@ function MeasurementRuler({ points }: { points: THREE.Vector3[] }) {
 
   return (
     <group>
-      <Line 
-        points={[start, end]} 
-        color="#ef4444" 
-        lineWidth={2} 
+      <Line
+        points={[start, end]}
+        color="#ef4444"
+        lineWidth={2}
       />
       <mesh position={start}>
         <sphereGeometry args={[1]} />
@@ -60,7 +60,7 @@ function MeasurementRuler({ points }: { points: THREE.Vector3[] }) {
       </mesh>
       <Html position={midPoint} center>
         <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none whitespace-nowrap">
-          {distance.toFixed(1)} mm
+          {distance.toFixed(1)} {units}
         </div>
       </Html>
     </group>
@@ -131,7 +131,13 @@ export function Viewer({
   const isJson = selectedObject?.fileType === 'json' || selectedObject?.name.toLowerCase().endsWith(".json");
 
   const handleExportClick = () => {
-      window.dispatchEvent(new CustomEvent("export-stl", { detail: { name: selectedObject?.name || "ferula-morfy" } }));
+      const units = parametricData?.units || "mm";
+      window.dispatchEvent(new CustomEvent("export-stl", {
+        detail: {
+          name: selectedObject?.name || "ferula-morfy",
+          units: units
+        }
+      }));
   };
 
   const handleNewPoint = (p: THREE.Vector3) => {
@@ -189,7 +195,7 @@ export function Viewer({
             )}
         </Suspense>
 
-        <MeasurementRuler points={rulerPoints} />
+        <MeasurementRuler points={rulerPoints} units={parametricData?.units || "mm"} />
         <ClickHandler onPoint={handleNewPoint} />
 
         {showBanana && (

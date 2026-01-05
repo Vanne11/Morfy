@@ -1,9 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CircleDot, MousePointer2, Lock, ArrowLeftRight, ArrowUpDown, Ruler } from "lucide-react";
+import { 
+  PenTool, 
+  MousePointer2, 
+  Lock, 
+  ArrowLeftRight, 
+  ArrowUpDown, 
+  Ruler, 
+  DraftingCompass, 
+  Eraser,
+  Square,
+  Circle,
+  Hexagon,
+  Component
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { type Constraint, type Vertex2D } from "@/utils/constraintSolver";
+import { type Constraint, type Dimension, type Vertex2D } from "@/utils/constraintSolver";
+import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -11,68 +25,126 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type ToolType = 'select' | 'node' | 'constraint_fixed' | 'constraint_horizontal' | 'constraint_vertical' | 'constraint_distance';
+export type ToolType = 'select' | 'node' | 'eraser' | 'constraint_fixed' | 'constraint_horizontal' | 'constraint_vertical' | 'dimension_linear' | 'dimension_angular' | 'rect' | 'circle' | 'polygon' | 'array';
 
 interface ToolsPanelProps {
   activeTool: ToolType;
   selectedNodes: string[];
+  selectedLines: Array<{ from: string; to: string }>;
   vertices: Record<string, Vertex2D>;
   onToolChange: (tool: ToolType) => void;
   onAddConstraint: (constraint: Omit<Constraint, 'id'>) => void;
+  onAddDimension: (dimension: Omit<Dimension, 'id'>) => void;
 }
 
 export function ToolsPanel({ 
   activeTool, 
   selectedNodes,
+  selectedLines,
   vertices,
   onToolChange,
-  onAddConstraint 
+  onAddConstraint,
+  onAddDimension
 }: ToolsPanelProps) {
 
-  const handleConstraintClick = (type: Constraint['type']) => {
-    const toolName = `constraint_${type}` as ToolType;
+  const canAddHorizontal = selectedNodes.length >= 2;
+  const canAddVertical = selectedNodes.length >= 2;
+  const canAddFixed = selectedNodes.length >= 1;
+  const canAddLinear = selectedNodes.length === 2;
+  const canAddAngular = selectedLines.length === 2;
 
+  const handleToolClick = (toolTarget: ToolType) => {
     // Si la herramienta ya está activa, desactivarla
-    if (activeTool === toolName) {
+    if (activeTool === toolTarget) {
       onToolChange('select');
       return;
     }
 
-    // Verificar si se puede aplicar inmediatamente
-    let canApplyImmediate = false;
-    if (type === 'fixed' && selectedNodes.length >= 1) canApplyImmediate = true;
-    else if ((type === 'horizontal' || type === 'vertical') && selectedNodes.length >= 2) canApplyImmediate = true;
-    else if (type === 'distance' && selectedNodes.length === 2) canApplyImmediate = true;
+    let applied = false;
 
-    if (canApplyImmediate) {
-      // Aplicación Inmediata
-      if (type === 'fixed') {
-        selectedNodes.forEach(nodeId => {
-          onAddConstraint({ type: 'fixed', nodes: [nodeId], enabled: true });
+    // --- RESTRICCIONES ---
+    if (toolTarget === 'constraint_fixed' && canAddFixed) {
+      selectedNodes.forEach(nodeId => {
+        onAddConstraint({ type: 'fixed', nodes: [nodeId], enabled: true });
+      });
+      toast.success(`${selectedNodes.length} nodo(s) fijado(s)`);
+      applied = true;
+    } 
+    else if (toolTarget === 'constraint_horizontal' && canAddHorizontal) {
+      onAddConstraint({ type: 'horizontal', nodes: [...selectedNodes], enabled: true });
+      toast.success('Restricción Horizontal añadida');
+      applied = true;
+    }
+    else if (toolTarget === 'constraint_vertical' && canAddVertical) {
+      onAddConstraint({ type: 'vertical', nodes: [...selectedNodes], enabled: true });
+      toast.success('Restricción Vertical añadida');
+      applied = true;
+    }
+
+    // --- DIMENSIONES ---
+    else if (toolTarget === 'dimension_linear' && canAddLinear) {
+      const [nodeA, nodeB] = selectedNodes;
+      const posA = vertices[nodeA];
+      const posB = vertices[nodeB];
+      if (posA && posB) {
+        const dist = Math.sqrt(Math.pow(posB.x - posA.x, 2) + Math.pow(posB.y - posA.y, 2));
+        onAddDimension({
+          type: 'linear',
+          value: Number(dist.toFixed(1)),
+          elements: { nodes: [nodeA, nodeB] },
+          isParameter: false
         });
-        toast.success(`${selectedNodes.length} nodo(s) fijado(s)`);
-      } else if (type === 'horizontal' || type === 'vertical') {
-        onAddConstraint({ type, nodes: [...selectedNodes], enabled: true });
-        toast.success(`Restricción ${type === 'horizontal' ? 'horizontal' : 'vertical'} añadida`);
-      } else if (type === 'distance') {
-        const [nodeA, nodeB] = selectedNodes;
-        const posA = vertices[nodeA];
-        const posB = vertices[nodeB];
-        if (posA && posB) {
-          const dist = Math.sqrt(Math.pow(posB.x - posA.x, 2) + Math.pow(posB.y - posA.y, 2));
-          onAddConstraint({ type: 'distance', nodes: [nodeA, nodeB], value: Number(dist.toFixed(1)), enabled: true });
-          toast.success(`Restricción de distancia: ${dist.toFixed(1)}cm`);
-        }
+        toast.success(`Dimensión Lineal: ${dist.toFixed(1)}cm`);
+        applied = true;
       }
-      // Volver a selección después de aplicar inmediatamente
+    }
+    else if (toolTarget === 'dimension_angular' && canAddAngular) {
+      const [l1, l2] = selectedLines;
+      const p1a = vertices[l1.from];
+      const p1b = vertices[l1.to];
+      const p2a = vertices[l2.from];
+      const p2b = vertices[l2.to];
+
+      if (p1a && p1b && p2a && p2b) {
+        const angle1 = Math.atan2(p1b.y - p1a.y, p1b.x - p1a.x);
+        const angle2 = Math.atan2(p2b.y - p2a.y, p2b.x - p2a.x);
+        let angleDiff = (angle2 - angle1) * (180 / Math.PI);
+        
+        // Normalizar ángulo positivo
+        if (angleDiff < 0) angleDiff += 360;
+        if (angleDiff > 180) angleDiff = 360 - angleDiff;
+
+        onAddDimension({
+          type: 'angular',
+          value: Number(angleDiff.toFixed(1)),
+          elements: { lines: [l1, l2] },
+          isParameter: false
+        });
+        toast.success(`Dimensión Angular: ${angleDiff.toFixed(1)}°`);
+        applied = true;
+      }
+    }
+
+    if (applied) {
       onToolChange('select');
     } else {
-      // Activar Modo Herramienta
-      onToolChange(toolName);
-      const msg = type === 'fixed' ? "Selecciona nodos para fijar" :
-                  type === 'distance' ? "Selecciona 2 nodos para medir distancia" :
-                  "Selecciona 2 o más nodos para alinear";
-      toast.info(msg);
+      // Activar modo herramienta
+      onToolChange(toolTarget);
+      
+      let msg = "";
+      switch (toolTarget) {
+        case 'constraint_fixed': msg = "Selecciona nodo(s) para fijar"; break;
+        case 'constraint_horizontal': msg = "Selecciona 2+ nodos para alinear horizontalmente"; break;
+        case 'constraint_vertical': msg = "Selecciona 2+ nodos para alinear verticalmente"; break;
+        case 'dimension_linear': msg = "Selecciona 2 nodos para medir distancia"; break;
+        case 'dimension_angular': msg = "Selecciona 2 líneas para medir ángulo"; break;
+        case 'eraser': msg = "Haz clic en nodos o líneas para eliminar"; break;
+        case 'rect': msg = "Modo Rectángulo: Haz clic en el canvas para posicionar (Próximamente)"; break;
+        case 'circle': msg = "Modo Círculo: Haz clic en el canvas para posicionar (Próximamente)"; break;
+        case 'polygon': msg = "Modo Polígono: Haz clic en el canvas para posicionar (Próximamente)"; break;
+        case 'array': msg = "Modo Patrón: Selecciona objetos para repetir (Próximamente)"; break;
+      }
+      if (msg) toast.info(msg);
     }
   };
 
@@ -106,21 +178,104 @@ export function ToolsPanel({
                   onClick={() => onToolChange('node')}
                   className={cn("h-8 w-8", activeTool === 'node' && "bg-primary text-primary-foreground")}
                 >
-                  <CircleDot className="h-4 w-4" />
+                  <PenTool className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
                 <p>Herramienta Nodo (N)</p>
               </TooltipContent>
             </Tooltip>
-          </div>
 
-          {/* FILA 2: RESTRICCIONES */}
-          <div className="flex gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={() => handleConstraintClick('fixed')}
+                  variant={activeTool === 'eraser' ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => handleToolClick('eraser')}
+                  className={cn("h-8 w-8", activeTool === 'eraser' && "bg-primary text-primary-foreground")}
+                >
+                  <Eraser className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">
+                <p>Borrar (Clic en nodo o línea)</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Separator orientation="vertical" className="h-6 mx-1 bg-zinc-700" />
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={activeTool === 'rect' ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => onToolChange('rect')}
+                  className={cn("h-8 w-8", activeTool === 'rect' && "bg-primary text-primary-foreground")}
+                >
+                  <Square className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">
+                <p>Rectángulo</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={activeTool === 'circle' ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => onToolChange('circle')}
+                  className={cn("h-8 w-8", activeTool === 'circle' && "bg-primary text-primary-foreground")}
+                >
+                  <Circle className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">
+                <p>Círculo</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={activeTool === 'polygon' ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => onToolChange('polygon')}
+                  className={cn("h-8 w-8", activeTool === 'polygon' && "bg-primary text-primary-foreground")}
+                >
+                  <Hexagon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">
+                <p>Polígono</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={activeTool === 'array' ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => onToolChange('array')}
+                  className={cn("h-8 w-8", activeTool === 'array' && "bg-primary text-primary-foreground")}
+                >
+                  <Component className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">
+                <p>Patrón (Array)</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* FILA 2: RESTRICCIONES Y DIMENSIONES */}
+          <div className="flex gap-2 items-center">
+            {/* RESTRICCIONES */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => handleToolClick('constraint_fixed')}
                   size="icon"
                   variant={activeTool === 'constraint_fixed' ? "default" : "outline"}
                   className={cn("h-8 w-8", activeTool === 'constraint_fixed' && "bg-primary text-primary-foreground")}
@@ -136,7 +291,7 @@ export function ToolsPanel({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={() => handleConstraintClick('horizontal')}
+                  onClick={() => handleToolClick('constraint_horizontal')}
                   size="icon"
                   variant={activeTool === 'constraint_horizontal' ? "default" : "outline"}
                   className={cn("h-8 w-8", activeTool === 'constraint_horizontal' && "bg-primary text-primary-foreground")}
@@ -152,7 +307,7 @@ export function ToolsPanel({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={() => handleConstraintClick('vertical')}
+                  onClick={() => handleToolClick('constraint_vertical')}
                   size="icon"
                   variant={activeTool === 'constraint_vertical' ? "default" : "outline"}
                   className={cn("h-8 w-8", activeTool === 'constraint_vertical' && "bg-primary text-primary-foreground")}
@@ -165,21 +320,41 @@ export function ToolsPanel({
               </TooltipContent>
             </Tooltip>
 
+            <Separator orientation="vertical" className="h-6 mx-1 bg-zinc-700" />
+
+            {/* DIMENSIONES */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={() => handleConstraintClick('distance')}
+                  onClick={() => handleToolClick('dimension_linear')}
                   size="icon"
-                  variant={activeTool === 'constraint_distance' ? "default" : "outline"}
-                  className={cn("h-8 w-8", activeTool === 'constraint_distance' && "bg-primary text-primary-foreground")}
+                  variant={activeTool === 'dimension_linear' ? "default" : "outline"}
+                  className={cn("h-8 w-8", activeTool === 'dimension_linear' && "bg-primary text-primary-foreground")}
                 >
                   <Ruler className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Distancia (Selecciona 2 nodos)</p>
+                <p>Dimensión Lineal (Selecciona 2 nodos)</p>
               </TooltipContent>
             </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => handleToolClick('dimension_angular')}
+                  size="icon"
+                  variant={activeTool === 'dimension_angular' ? "default" : "outline"}
+                  className={cn("h-8 w-8", activeTool === 'dimension_angular' && "bg-primary text-primary-foreground")}
+                >
+                  <DraftingCompass className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">
+                <p>Dimensión Angular (Selecciona 2 líneas)</p>
+              </TooltipContent>
+            </Tooltip>
+
           </div>
         </CardContent>
       </Card>

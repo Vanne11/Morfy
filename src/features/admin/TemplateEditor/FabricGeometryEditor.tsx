@@ -1,6 +1,9 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import * as fabric from "fabric";
 import { toast } from "sonner";
+import { Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { evaluateExpression } from "@/utils/paramEvaluator";
 import {
   constraintSolver,
@@ -14,6 +17,7 @@ interface FabricEditorProps {
   params: Record<string, any>;
   onNodeMove: (nodeId: string, x: number, y: number) => void;
   onNodeAdd: (perimeterId: string, afterNodeId: string, x: number, y: number) => void;
+  onElementDelete?: (type: 'node' | 'line' | 'circle', id: string, secondaryId?: string) => void;
   onShapeCreate?: (shape: any) => void;
   selectedNodes: string[];
   selectedLines: Array<{ from: string; to: string }>;
@@ -29,6 +33,7 @@ export function FabricGeometryEditor({
   params,
   onNodeMove,
   onNodeAdd,
+  onElementDelete,
   onShapeCreate,
   selectedNodes,
   selectedLines,
@@ -48,15 +53,150 @@ export function FabricGeometryEditor({
   const drawingPoints = useRef<Array<{x: number, y: number}>>([]);
   const tempDrawingObjects = useRef<fabric.Object[]>([]);
 
+  // Estado para creación interactiva de formas (Rect/Poly/Circle)
+  const [creationState, setCreationState] = useState<'none' | 'rect_height' | 'rect_width' | 'poly_sides' | 'poly_dist' | 'circle_radius'>('none');
+  const [creationData, setCreationData] = useState<{x: number, y: number, screenX: number, screenY: number, firstVal?: number} | null>(null);
+  const [inputValue, setInputValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
   // Limpiar dibujo temporal al cambiar de herramienta
   useEffect(() => {
     drawingPoints.current = [];
+    setCreationState('none');
+    setCreationData(null);
+    setInputValue("");
+    
     if (fabricRef.current) {
       tempDrawingObjects.current.forEach(obj => fabricRef.current?.remove(obj));
       tempDrawingObjects.current = [];
       fabricRef.current.requestRenderAll();
     }
   }, [activeTool, drawingMode]);
+
+  // Auto-foco en el input cuando aparece
+  useEffect(() => {
+    if (creationState !== 'none' && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [creationState]);
+
+  const handleShapeCreationStep = () => {
+    if (!creationData || !onShapeCreate) return;
+    const val = parseFloat(inputValue);
+    
+    if (isNaN(val) || val <= 0) {
+      toast.error("Por favor ingresa un valor válido mayor a 0");
+      return;
+    }
+
+    if (creationState === 'rect_height') {
+      // Guardar alto y pedir ancho
+      setCreationData({ ...creationData, firstVal: val });
+      setCreationState('rect_width');
+      setInputValue("");
+    } 
+    else if (creationState === 'rect_width') {
+      // Tenemos alto (firstVal) y ancho (val). Crear Rect.
+      const height = creationData.firstVal!;
+      const width = val;
+      
+      // Rectángulo centrado en el punto de clic
+      const halfW = width / 2;
+      const halfH = height / 2;
+      const rectPoints = [
+        { x: creationData.x - halfW, y: creationData.y - halfH }, // Top-Left
+        { x: creationData.x + halfW, y: creationData.y - halfH }, // Top-Right
+        { x: creationData.x + halfW, y: creationData.y + halfH }, // Bottom-Right
+        { x: creationData.x - halfW, y: creationData.y + halfH }, // Bottom-Left
+      ];
+
+      // Convertir a estructura de vértices/elementos
+      const pIndex = (geometry?.contours?.length || 0) + 1;
+      const perimeterId = `p${pIndex}`;
+      const newVertices: Record<string, {x: string, y: string}> = {};
+      const newElements: Array<{type: string, from: string, to: string}> = [];
+
+      rectPoints.forEach((pt, i) => {
+        const nodeId = `${perimeterId}n${i + 1}`;
+        newVertices[nodeId] = { x: pt.x.toFixed(1), y: pt.y.toFixed(1) };
+        const nextIndex = (i + 1) % 4;
+        const nextNodeId = `${perimeterId}n${nextIndex + 1}`;
+        newElements.push({ type: 'line', from: nodeId, to: nextNodeId });
+      });
+
+      onShapeCreate({
+        type: 'custom_poly', // Usamos custom_poly para pasar vértices explícitos
+        vertices: newVertices,
+        elements: newElements,
+        isHole: false // Por defecto outer, el editor principal decide si es hole
+      });
+
+      setCreationState('none');
+      setCreationData(null);
+      setInputValue("");
+    }
+    else if (creationState === 'poly_sides') {
+      if (val < 3) {
+        toast.error("Un polígono necesita al menos 3 lados");
+        return;
+      }
+      // Guardar lados y pedir distancia entre nodos
+      setCreationData({ ...creationData, firstVal: val });
+      setCreationState('poly_dist');
+      setInputValue("");
+    }
+    else if (creationState === 'poly_dist') {
+      // Tenemos lados (firstVal) y distancia entre nodos (val).
+      const sides = creationData.firstVal!;
+      const sideLength = val;
+      
+      // Calcular radio a partir del lado: s = 2r * sin(pi/n) => r = s / (2 * sin(pi/n))
+      const radius = sideLength / (2 * Math.sin(Math.PI / sides));
+
+      const pIndex = (geometry?.contours?.length || 0) + 1;
+      const perimeterId = `p${pIndex}`;
+      const newVertices: Record<string, {x: string, y: string}> = {};
+      const newElements: Array<{type: string, from: string, to: string}> = [];
+
+      for (let i = 0; i < sides; i++) {
+        const angle = (i / sides) * 2 * Math.PI - Math.PI / 2;
+        const vx = creationData.x + radius * Math.cos(angle);
+        const vy = creationData.y + radius * Math.sin(angle);
+        
+        const nodeId = `${perimeterId}n${i + 1}`;
+        newVertices[nodeId] = { x: vx.toFixed(1), y: vy.toFixed(1) };
+        
+        const nextIndex = (i + 1) % sides;
+        const nextNodeId = `${perimeterId}n${nextIndex + 1}`;
+        newElements.push({ type: 'line', from: nodeId, to: nextNodeId });
+      }
+
+      onShapeCreate({
+        type: 'custom_poly',
+        vertices: newVertices,
+        elements: newElements,
+        isHole: false
+      });
+
+      setCreationState('none');
+      setCreationData(null);
+      setInputValue("");
+    }
+    else if (creationState === 'circle_radius') {
+      const radius = val;
+      
+      onShapeCreate({
+        type: 'circle_primitive',
+        center: { x: creationData.x, y: creationData.y },
+        radiusPoint: { x: creationData.x + radius, y: creationData.y },
+        radius: radius
+      });
+
+      setCreationState('none');
+      setCreationData(null);
+      setInputValue("");
+    }
+  };
 
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
@@ -147,6 +287,14 @@ export function FabricGeometryEditor({
   // Manejo de teclado
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Cancelar creación interactiva
+      if (e.key === 'Escape' && creationState !== 'none') {
+         setCreationState('none');
+         setCreationData(null);
+         setInputValue("");
+         return;
+      }
+
       if (activeTool !== 'node') return;
       
       if (e.key === 'Enter') {
@@ -162,7 +310,7 @@ export function FabricGeometryEditor({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTool, drawingMode, onShapeCreate]);
+  }, [activeTool, drawingMode, onShapeCreate, creationState]);
 
   useEffect(() => {
     if (!fabricRef.current || !geometry) return;
@@ -175,8 +323,9 @@ export function FabricGeometryEditor({
     // Configurar cursor según herramienta
     const canSelect = activeTool === 'select' || activeTool.startsWith('constraint_');
     const canDrag = activeTool === 'select';
+    const isEraser = activeTool === 'eraser';
 
-    canvas.defaultCursor = activeTool === 'node' ? 'crosshair' : 'default';
+    canvas.defaultCursor = activeTool === 'node' ? 'crosshair' : isEraser ? 'crosshair' : 'default';
     canvas.selection = canSelect;
 
     // Redibujar el fondo
@@ -306,6 +455,75 @@ export function FabricGeometryEditor({
       canvas.add(filledPath);
     }
 
+    // Dibujar Círculos Paramétricos
+    if (geometry.circles) {
+      for (const circleDef of geometry.circles) {
+        const center = evaluatedVertices[circleDef.center];
+        const point = evaluatedVertices[circleDef.radiusPoint];
+        
+        if (center && point) {
+          const cx = toCanvasX(center.x);
+          const cy = toCanvasY(center.y);
+          const px = toCanvasX(point.x);
+          const py = toCanvasY(point.y);
+          
+          // Calcular radio visual
+          const radiusVisual = Math.sqrt(Math.pow(px - cx, 2) + Math.pow(py - cy, 2));
+
+          const circleObj = new fabric.Circle({
+            left: cx,
+            top: cy,
+            radius: radiusVisual,
+            fill: 'rgba(59, 130, 246, 0.1)',
+            stroke: '#3b82f6',
+            strokeWidth: 2,
+            originX: 'center',
+            originY: 'center',
+            selectable: false, // El círculo en sí no se selecciona, se seleccionan los nodos
+            evented: true, // Permitir eventos para borrar
+            hoverCursor: isEraser ? 'crosshair' : 'default',
+            data: { type: 'circle', id: circleDef.id }
+          });
+
+          // Hover effect para borrar
+          circleObj.on('mouseover', () => {
+            if (isEraser) {
+              circleObj.set({ strokeWidth: 4, stroke: '#ef4444', fill: 'rgba(239, 68, 68, 0.2)' });
+              canvas.renderAll();
+            }
+          });
+
+          circleObj.on('mouseout', () => {
+            if (isEraser) {
+              circleObj.set({ strokeWidth: 2, stroke: '#3b82f6', fill: 'rgba(59, 130, 246, 0.1)' });
+              canvas.renderAll();
+            }
+          });
+
+          // Click para borrar
+          circleObj.on('mousedown', () => {
+            if (isEraser) {
+              onElementDelete?.('circle', circleDef.id);
+            }
+          });
+          
+          canvas.add(circleObj);
+
+          // Línea de radio visual
+          const radiusLine = new fabric.Line([cx, cy, px, py], {
+            stroke: '#3b82f6',
+            strokeWidth: 1,
+            strokeDashArray: [4, 4],
+            selectable: false,
+            evented: false,
+            opacity: 0.6
+          });
+          
+          canvas.add(radiusLine);
+        }
+      }
+    }
+
     // Dibujar contornos (líneas)
     for (const contour of geometry.contours || []) {
       const strokeColor = contour.type === 'outer' ? '#3b82f6' : '#ef4444';
@@ -339,7 +557,7 @@ export function FabricGeometryEditor({
             hasBorders: false,
             lockMovementX: true,
             lockMovementY: true,
-            hoverCursor: canSelect ? 'pointer' : 'crosshair',
+            hoverCursor: isEraser ? 'crosshair' : (canSelect ? 'pointer' : 'crosshair'),
             data: {
               type: 'edge',
               contourId: contour.id,
@@ -351,21 +569,32 @@ export function FabricGeometryEditor({
 
         // Hover effect
         line.on('mouseover', () => {
-          if (!isLineSelected && canSelect) {
+          if (isEraser) {
+            line.set({ strokeWidth: 4, stroke: '#ef4444' }); // Red hover for delete
+            canvas.renderAll();
+          } else if (!isLineSelected && canSelect) {
             line.set({ strokeWidth: 4, stroke: '#facc15' });
             canvas.renderAll();
           }
         });
 
         line.on('mouseout', () => {
-          if (!isLineSelected && canSelect) {
+          if (isEraser) {
+            line.set({ strokeWidth: isLineSelected ? 4 : 2, stroke: isLineSelected ? '#facc15' : strokeColor });
+            canvas.renderAll();
+          } else if (!isLineSelected && canSelect) {
             line.set({ strokeWidth: 2, stroke: strokeColor });
             canvas.renderAll();
           }
         });
 
-        // Click para seleccionar línea
+        // Click para seleccionar línea O BORRAR
         line.on('mousedown', (event) => {
+          if (isEraser) {
+            onElementDelete?.('line', element.from, element.to);
+            return;
+          }
+
           if (!canSelect) return;
           const lineData = { from: element.from, to: element.to };
 
@@ -430,7 +659,7 @@ export function FabricGeometryEditor({
         lockMovementY: !canDrag,
         lockScalingX: true,
         lockScalingY: true,
-        hoverCursor: canSelect ? (canDrag ? 'move' : 'pointer') : 'crosshair',
+        hoverCursor: isEraser ? 'crosshair' : (canSelect ? (canDrag ? 'move' : 'pointer') : 'crosshair'),
         data: { type: 'node', id },
       });
 
@@ -446,8 +675,30 @@ export function FabricGeometryEditor({
         evented: false,
       });
 
-      // Evento de click para selección múltiple
+      // Hover effect para borrar
+      circle.on('mouseover', () => {
+        if (isEraser) {
+          circle.set({ fill: '#ef4444', scaleX: 1.2, scaleY: 1.2 });
+          text.set({ fill: '#ef4444' });
+          canvas.renderAll();
+        }
+      });
+
+      circle.on('mouseout', () => {
+        if (isEraser) {
+          circle.set({ fill: isSelected ? '#f59e0b' : '#10b981', scaleX: 1, scaleY: 1 });
+          text.set({ fill: '#10b981' });
+          canvas.renderAll();
+        }
+      });
+
+      // Evento de click para selección múltiple O BORRAR
       circle.on('mousedown', (e) => {
+        if (isEraser) {
+          onElementDelete?.('node', id);
+          return;
+        }
+
         if (!canSelect) return;
         const event = e.e as MouseEvent;
         if (event.ctrlKey || event.metaKey || activeTool.startsWith('constraint_')) {
@@ -827,8 +1078,46 @@ export function FabricGeometryEditor({
     // MANEJO DE CLICKS EN EL CANVAS (HERRAMIENTAS DE DIBUJO)
     // ------------------------------------------------------------------------
     const handleMouseDown = (e: any) => {
+      // Si estamos en un paso intermedio de creación, ignorar clicks en el canvas
+      // para evitar reiniciar o mover cosas accidentalmente.
+      if (creationState !== 'none') return;
+
       if (activeTool === 'select') {
         if (!e.target) onSelectionChange([], []);
+        return;
+      }
+
+      // HERRAMIENTAS DE CREACIÓN DE FORMAS (RECT / POLYGON / CIRCLE)
+      if (activeTool === 'rect' || activeTool === 'polygon' || activeTool === 'circle') {
+        const pointer = e.scenePoint;
+        if (!pointer) return;
+
+        // Coordenadas lógicas (del mundo)
+        const logicX = Number(fromCanvasX(pointer.x).toFixed(1));
+        const logicY = Number(fromCanvasY(pointer.y).toFixed(1));
+
+        // Coordenadas de pantalla (relativas al contenedor) para posicionar el input
+        const rect = containerRef.current?.getBoundingClientRect();
+        const clientX = e.e.clientX;
+        const clientY = e.e.clientY;
+        
+        let screenX = 0;
+        let screenY = 0;
+
+        if (rect) {
+           screenX = clientX - rect.left;
+           screenY = clientY - rect.top;
+        }
+
+        setCreationData({ x: logicX, y: logicY, screenX, screenY });
+        
+        if (activeTool === 'rect') {
+          setCreationState('rect_height');
+        } else if (activeTool === 'polygon') {
+          setCreationState('poly_sides');
+        } else if (activeTool === 'circle') {
+          setCreationState('circle_radius');
+        }
         return;
       }
 
@@ -913,19 +1202,83 @@ export function FabricGeometryEditor({
 
     canvas.on('mouse:down', handleMouseDown);
 
+    // Manejador de doble clic para cerrar formas
+    const handleMouseDblClick = () => {
+      // Verificar que estamos en modo de dibujo de nuevos perímetros
+      if (activeTool === 'node' && (drawingMode === 'new' || drawingMode === 'add_hole')) {
+        // El doble click dispara dos eventos mouse:down antes del dblclick, creando 2 puntos extra.
+        // Los eliminamos para que el doble click actúe solo como confirmación de cierre
+        // sin añadir nodos adicionales en la posición del cursor.
+        if (drawingPoints.current.length >= 2) {
+          drawingPoints.current.splice(drawingPoints.current.length - 2, 2);
+        }
+        finishDrawing();
+      }
+    };
+
+    canvas.on('mouse:dblclick', handleMouseDblClick);
+
     // Limpiar listener al desmontar o cambiar dependencias
     return () => {
       canvas.off('mouse:down', handleMouseDown);
+      canvas.off('mouse:dblclick', handleMouseDblClick);
     };
 
-  }, [geometry, params, onNodeMove, onNodeAdd, selectedNodes, selectedLines, onSelectionChange, constraints, dimensions, activeTool, drawingMode]);
+  }, [geometry, params, onNodeMove, onNodeAdd, selectedNodes, selectedLines, onSelectionChange, constraints, dimensions, activeTool, drawingMode, creationState]); // Added creationState dependency
 
   return (
     <div
       ref={containerRef}
-      className="w-full h-full bg-white rounded border border-zinc-300 p-4 flex items-center justify-center"
+      className="w-full h-full bg-white rounded border border-zinc-300 p-4 flex items-center justify-center relative overflow-hidden"
     >
       <canvas ref={canvasRef} />
+      
+      {/* INPUT FLOTANTE PARA CREACIÓN DE FORMAS */}
+      {creationState !== 'none' && creationData && (
+        <div 
+          className="absolute z-50 bg-popover text-popover-foreground border shadow-xl rounded-md p-2 flex gap-2 items-center animate-in fade-in zoom-in-95 duration-200"
+          style={{ 
+            left: creationData.screenX, 
+            top: creationData.screenY,
+            transform: 'translate(-50%, -120%)' // Centrar horizontalmente y poner encima del click
+          }}
+        >
+          <div className="flex flex-col gap-1 min-w-[140px]">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground">
+              {creationState === 'rect_height' && "Alto del Rectángulo"}
+              {creationState === 'rect_width' && "Ancho del Rectángulo"}
+              {creationState === 'poly_sides' && "Cantidad de Nodos"}
+              {creationState === 'poly_dist' && "Distancia entre Nodos"}
+              {creationState === 'circle_radius' && "Radio del Círculo"}
+            </span>
+            <div className="flex gap-2">
+              <Input
+                ref={inputRef}
+                type="number"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleShapeCreationStep();
+                  if (e.key === 'Escape') {
+                    setCreationState('none');
+                    setCreationData(null);
+                  }
+                }}
+                className="h-8 w-24 text-xs"
+                placeholder="Valor..."
+                autoFocus
+              />
+              <Button 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={handleShapeCreationStep}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

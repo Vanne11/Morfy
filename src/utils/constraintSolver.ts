@@ -51,7 +51,7 @@ export interface Dimension {
   label?: string;         // Nombre del parámetro (si se convierte en parámetro editable)
   isParameter: boolean;   // Si aparece en el panel de parámetros
   offset?: { x: number; y: number }; // Posición de la cota en el canvas
-  inverted?: boolean;     // Para ángulos: si true, usa el ángulo suplementario (360° - ángulo)
+  inverted?: boolean;     // Para ángulos: si true, muestra y controla el ángulo reflex (exterior) en lugar del interno
 }
 
 // ============================================================================

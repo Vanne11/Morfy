@@ -13,6 +13,21 @@ import type { ParamContext } from './paramEvaluator';
 /**
  * Tipos para la definición de geometría SVG paramétrica
  */
+
+/**
+ * Unidades soportadas para las dimensiones del modelo
+ */
+export type UnitType = 'mm' | 'cm' | 'inches';
+
+/**
+ * Factores de conversión a milímetros (estándar STL)
+ */
+export const UNIT_TO_MM: Record<UnitType, number> = {
+  mm: 1.0,
+  cm: 10.0,
+  inches: 25.4
+};
+
 export interface VertexDefinition {
   x: string | number;
   y: string | number;
@@ -60,6 +75,12 @@ export interface Contour {
   elements: PathElement[];
 }
 
+export interface CircleDefinition {
+  id: string;
+  center: string;
+  radiusPoint: string;
+}
+
 export interface ExtrusionSettings {
   height: string | number;
   bevel?: boolean;
@@ -73,6 +94,7 @@ export interface ExtrusionSettings {
 export interface SVGGeometryDefinition {
   vertices: Record<string, VertexDefinition>;
   contours: Contour[];
+  circles?: CircleDefinition[];
   extrusion: ExtrusionSettings;
 }
 
@@ -281,19 +303,36 @@ export function svgGeometryToThree(
   // 1. Evaluar todos los vértices
   const evaluatedVertices = evaluateVertices(geometryDef.vertices, params);
 
+  const shapes: Shape[] = [];
+
+  // 1.1 Procesar Círculos (si existen)
+  if (geometryDef.circles) {
+    for (const circle of geometryDef.circles) {
+      const center = evaluatedVertices[circle.center];
+      const point = evaluatedVertices[circle.radiusPoint];
+      if (center && point) {
+        const radius = Math.sqrt(Math.pow(point.x - center.x, 2) + Math.pow(point.y - center.y, 2));
+        const s = new Shape();
+        s.absarc(center.x, center.y, radius, 0, Math.PI * 2, false);
+        shapes.push(s);
+      }
+    }
+  }
+
   // 2. Encontrar el contorno exterior
   const outerContour = geometryDef.contours.find(c => c.type === 'outer');
 
-  if (!outerContour) {
-    throw new Error('No se encontró contorno exterior (type: "outer")');
+  if (outerContour) {
+    shapes.push(createShapeFromContour(outerContour, evaluatedVertices, params));
   }
 
-  // 3. Crear el shape principal
-  const mainShape = createShapeFromContour(
-    outerContour,
-    evaluatedVertices,
-    params
-  );
+  if (shapes.length === 0) {
+    throw new Error('No se encontró geometría base (contorno exterior o círculo)');
+  }
+
+  // 3. Usar el primer shape como principal (o el único)
+  // TODO: Si hay múltiples shapes disjuntos, ExtrudeGeometry puede recibir array de shapes
+  const mainShape = shapes[0];
 
   // 4. Agregar agujeros (holes)
   const holeContours = geometryDef.contours.filter(c => c.type === 'hole');
@@ -349,17 +388,25 @@ export function validateGeometryDefinition(
     errors.push('No hay vértices definidos');
   }
 
-  // Verificar que haya contornos
-  if (!geometryDef.contours || geometryDef.contours.length === 0) {
-    errors.push('No hay contornos definidos');
+  // Verificar que haya contornos o círculos
+  const hasContours = geometryDef.contours && geometryDef.contours.length > 0;
+  const hasCircles = geometryDef.circles && geometryDef.circles.length > 0;
+
+  if (!hasContours && !hasCircles) {
+    errors.push('No hay contornos ni círculos definidos');
   }
 
-  // Verificar que haya exactamente 1 contorno exterior
+  // Verificar que haya exactamente 1 contorno exterior SI no hay círculos
+  // Si hay círculos, asumimos que el círculo actúa como exterior
   const outerContours = geometryDef.contours?.filter(c => c.type === 'outer') || [];
-  if (outerContours.length === 0) {
-    errors.push('No hay contorno exterior (type: "outer")');
-  } else if (outerContours.length > 1) {
+  
+  if (!hasCircles && outerContours.length === 0) {
+    errors.push('No hay contorno exterior (type: "outer") y no hay círculos');
+  } else if (!hasCircles && outerContours.length > 1) {
     errors.push(`Hay ${outerContours.length} contornos exteriores, debe haber solo 1`);
+  } else if (hasCircles && outerContours.length > 0) {
+    // Esto podría ser válido (un círculo y otra forma), pero por ahora warning o permitir
+    // errors.push('No se puede mezclar contornos exteriores con círculos primitivos');
   }
 
   // Verificar que todos los contornos tengan elementos
@@ -458,6 +505,21 @@ export function calculateBounds2D(
     maxY = Math.max(maxY, vertex.y);
   }
 
+  // Expandir bounds por círculos
+  if (geometryDef.circles) {
+    for (const circle of geometryDef.circles) {
+      const c = evaluatedVertices[circle.center];
+      const p = evaluatedVertices[circle.radiusPoint];
+      if (c && p) {
+        const r = Math.sqrt(Math.pow(p.x - c.x, 2) + Math.pow(p.y - c.y, 2));
+        minX = Math.min(minX, c.x - r);
+        maxX = Math.max(maxX, c.x + r);
+        minY = Math.min(minY, c.y - r);
+        maxY = Math.max(maxY, c.y + r);
+      }
+    }
+  }
+
   return { minX, maxX, minY, maxY };
 }
 
@@ -534,6 +596,20 @@ export function generateSVGPreview(
     const fillColor = contour.type === 'outer' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)';
 
     svgPaths += `<path d="${pathData}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" />\n`;
+  }
+
+  // Generar círculos primitivos
+  if (geometryDef.circles) {
+    for (const circle of geometryDef.circles) {
+      const c = evaluatedVertices[circle.center];
+      const p = evaluatedVertices[circle.radiusPoint];
+      if (c && p) {
+        const r = Math.sqrt(Math.pow(p.x - c.x, 2) + Math.pow(p.y - c.y, 2));
+        svgPaths += `<circle cx="${c.x}" cy="${c.y}" r="${r}" fill="rgba(59, 130, 246, 0.1)" stroke="#3b82f6" stroke-width="${strokeWidth}" />\n`;
+        // Línea de radio visual
+        svgPaths += `<line x1="${c.x}" y1="${c.y}" x2="${p.x}" y2="${p.y}" stroke="#3b82f6" stroke-width="${strokeWidth * 0.5}" stroke-dasharray="${strokeWidth * 2}" />\n`;
+      }
+    }
   }
 
   // AGREGAR MARCADORES DE VÉRTICES CON NÚMEROS

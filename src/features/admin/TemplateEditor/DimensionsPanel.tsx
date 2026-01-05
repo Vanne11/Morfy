@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import { Ruler, ArrowLeftRight, ArrowUpDown, RotateCw, Trash2, RefreshCw } from "lucide-react";
+import { Ruler, ArrowLeftRight, ArrowUpDown, Trash2, RefreshCw } from "lucide-react";
 import {
   type Dimension,
   type Vertex2D,
@@ -13,10 +12,7 @@ import {
 
 interface DimensionsPanelProps {
   dimensions: Dimension[];
-  selectedNodes: string[];
-  selectedLines: Array<{ from: string; to: string }>;
   vertices: Record<string, Vertex2D>;
-  onAddDimension: (dimension: Omit<Dimension, 'id'>) => void;
   onUpdateDimension: (id: string, value: number) => void;
   onRemoveDimension: (id: string) => void;
   onToggleDimensionParameter: (id: string) => void;
@@ -85,99 +81,12 @@ function DimensionInput({ dimension, vertices, onUpdate }: DimensionInputProps) 
 
 export function DimensionsPanel({
   dimensions,
-  selectedNodes,
-  selectedLines,
   vertices,
-  onAddDimension,
   onUpdateDimension,
   onRemoveDimension,
   onToggleDimensionParameter,
   onInvertAngle
 }: DimensionsPanelProps) {
-  const canAddLinear = selectedNodes.length === 2 || selectedLines.length === 1;
-  const canAddAngular = selectedLines.length === 2;
-
-  const addDimension = (type: Dimension['type']) => {
-    if (type === 'linear' && (selectedNodes.length === 2 || selectedLines.length === 1)) {
-      let nodeA: string, nodeB: string;
-
-      if (selectedLines.length === 1) {
-        nodeA = selectedLines[0].from;
-        nodeB = selectedLines[0].to;
-      } else {
-        [nodeA, nodeB] = selectedNodes;
-      }
-
-      const posA = vertices[nodeA];
-      const posB = vertices[nodeB];
-
-      if (posA && posB) {
-        const dist = Math.sqrt(
-          Math.pow(posB.x - posA.x, 2) + Math.pow(posB.y - posA.y, 2)
-        );
-
-        onAddDimension({
-          type: 'linear',
-          elements: {
-            nodes: [nodeA, nodeB]
-          },
-          value: Number(dist.toFixed(1)),
-          isParameter: false
-        });
-      }
-    } else if (type === 'angular' && selectedLines.length === 2) {
-      const [line1, line2] = selectedLines;
-
-      const pos1A = vertices[line1.from];
-      const pos1B = vertices[line1.to];
-      const pos2A = vertices[line2.from];
-      const pos2B = vertices[line2.to];
-
-      if (!pos1A || !pos1B || !pos2A || !pos2B) {
-        toast.error('No se pueden encontrar todos los vértices de las líneas');
-        return;
-      }
-
-      // Buscar vértice común (pivote)
-      let pivot: Vertex2D | null = null;
-      let other1: Vertex2D | null = null;
-      let other2: Vertex2D | null = null;
-
-      if (line1.from === line2.from) { pivot = pos1A; other1 = pos1B; other2 = pos2B; }
-      else if (line1.from === line2.to) { pivot = pos1A; other1 = pos1B; other2 = pos2A; }
-      else if (line1.to === line2.from) { pivot = pos1B; other1 = pos1A; other2 = pos2B; }
-      else if (line1.to === line2.to) { pivot = pos1B; other1 = pos1A; other2 = pos2A; }
-
-      if (!pivot || !other1 || !other2) {
-        toast.error('Las líneas deben compartir un vértice común');
-        return;
-      }
-
-      // Calcular vectores desde el pivote
-      const v1 = { x: other1.x - pivot.x, y: other1.y - pivot.y };
-      const v2 = { x: other2.x - pivot.x, y: other2.y - pivot.y };
-      
-      const mag1 = Math.sqrt(v1.x*v1.x + v1.y*v1.y);
-      const mag2 = Math.sqrt(v2.x*v2.x + v2.y*v2.y);
-      
-      let angleDegrees = 0;
-      if (mag1 > 0 && mag2 > 0) {
-        const dot = v1.x * v2.x + v1.y * v2.y;
-        const cosTheta = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
-        angleDegrees = Math.acos(cosTheta) * 180 / Math.PI;
-      }
-
-      onAddDimension({
-        type: 'angular',
-        elements: {
-          lines: [line1, line2]
-        },
-        value: Number(angleDegrees.toFixed(1)),
-        isParameter: false,
-        inverted: false
-      });
-    }
-  };
 
   const getDimensionIcon = (type: Dimension['type']) => {
     switch (type) {
@@ -208,46 +117,8 @@ export function DimensionsPanel({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-3 space-y-3">
-        {/* BOTONES PARA AGREGAR DIMENSIONES */}
-        <div className="space-y-2">
-          <Label className="text-[10px] uppercase font-bold text-zinc-400">
-            Agregar Dimensión
-            {selectedNodes.length > 0 && ` (${selectedNodes.length} nodos)`}
-            {selectedLines.length > 0 && ` (${selectedLines.length} líneas)`}
-          </Label>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              onClick={() => addDimension('linear')}
-              disabled={!canAddLinear}
-              size="sm"
-              variant="secondary"
-              className="h-8 text-xs gap-1"
-              title="Dimensión lineal entre 2 nodos"
-            >
-              <Ruler className="h-3 w-3" />
-              Lineal
-            </Button>
-            <Button
-              onClick={() => addDimension('angular')}
-              disabled={!canAddAngular}
-              size="sm"
-              variant="secondary"
-              className="h-8 text-xs gap-1"
-              title="Ángulo entre 2 líneas"
-            >
-              <RotateCw className="h-3 w-3" />
-              Angular
-            </Button>
-          </div>
-          {selectedNodes.length === 0 && selectedLines.length === 0 && (
-            <div className="text-[10px] text-muted-foreground text-center py-2">
-              Selecciona 2 nodos o 2 líneas para dimensionar
-            </div>
-          )}
-        </div>
-
         {/* LISTA DE DIMENSIONES */}
-        {dimensions.length > 0 && (
+        {dimensions.length > 0 ? (
           <div className="space-y-2">
             <Label className="text-[10px] uppercase font-bold text-zinc-400">
               Dimensiones Activas
@@ -303,27 +174,14 @@ export function DimensionsPanel({
                       vertices={vertices}
                       onUpdate={onUpdateDimension}
                     />
-
-                    {dimension.isParameter && (
-                      <div className="bg-primary/10 border border-primary/30 rounded p-1.5">
-                        <Label className="text-[9px] text-primary">
-                          Nombre del parámetro
-                        </Label>
-                        <Input
-                          type="text"
-                          value={dimension.label || ''}
-                          onChange={() => {
-                            // TODO: Implementar actualización de label
-                          }}
-                          placeholder="Ej: longitud, ancho, radio"
-                          className="h-6 text-[10px] mt-1"
-                        />
-                      </div>
-                    )}
                   </div>
                 );
               })}
             </div>
+          </div>
+        ) : (
+          <div className="text-[10px] text-muted-foreground text-center py-2">
+            No hay dimensiones activas
           </div>
         )}
       </CardContent>

@@ -16,6 +16,7 @@
   "name": "Nombre del Template",
   "type": "svg_parametric",
   "version": "2.0",
+  "units": "mm",
 
   "ui_controls": [
     {
@@ -70,6 +71,49 @@
   }
 }
 ```
+
+---
+
+## 0. Sistema de Unidades
+
+El campo `units` define la unidad de medida utilizada en todos los parámetros del template. Este valor es crítico para la correcta exportación de archivos STL para impresión 3D.
+
+### Unidades Soportadas
+
+- **`"mm"`** - Milímetros (por defecto, estándar para STL)
+- **`"cm"`** - Centímetros
+- **`"inches"`** - Pulgadas
+
+### Comportamiento
+
+Cuando se exporta un modelo a STL, el sistema automáticamente convierte las dimensiones a milímetros (el estándar de la industria para archivos STL). Los factores de conversión son:
+
+- `mm → mm`: factor 1.0 (sin conversión)
+- `cm → mm`: factor 10.0
+- `inches → mm`: factor 25.4
+
+### Ejemplo con Centímetros
+
+Si trabajas en centímetros, configura `"units": "cm"` en tu template:
+
+```json
+{
+  "name": "Férula en Centímetros",
+  "type": "svg_parametric",
+  "version": "2.0",
+  "units": "cm",
+
+  "params": {
+    "longitud": 9.0,    // 9 cm = 90 mm
+    "ancho": 6.0,       // 6 cm = 60 mm
+    "grosor": 0.3       // 0.3 cm = 3 mm
+  }
+}
+```
+
+Al exportar, el sistema escalará automáticamente a milímetros para garantizar que el archivo STL tenga las dimensiones correctas.
+
+**Nota:** Si omites el campo `units`, el sistema asumirá `"mm"` por defecto.
 
 ---
 

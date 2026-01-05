@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { nanoid } from "nanoid";
-import {
-  Dialog,
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { db, type ITemplate } from "@/app/db";
-import { Code, Camera, Shapes, ChevronDown, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Code, Camera, Shapes, AlertCircle, CheckCircle2, BoxSelect, SlidersHorizontal, Lock, Ruler } from "lucide-react";
 import { validateGeometryDefinition } from "@/utils/svgToThree";
 import { evaluateExpression } from "@/utils/paramEvaluator";
 import {
@@ -29,7 +29,6 @@ import {
 import type { TemplateEditorProps } from "./types";
 import { LivePreview } from "./LivePreview";
 import { TransformationPanel } from "./TransformationPanel";
-import { GeometryTools } from "./GeometryTools";
 import { ConstraintsPanel } from "./ConstraintsPanel";
 import { DimensionsPanel } from "./DimensionsPanel";
 import { FabricGeometryEditor } from "./FabricGeometryEditor";
@@ -135,9 +134,9 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
     const updated = {
       ...previewData,
       geometry: {
-        ...newGeometry,
         constraints,
-        dimensions
+        dimensions,
+        ...newGeometry,
       },
     };
     setPreviewData(updated);
@@ -173,6 +172,22 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
     setDrawingMode(null);
   };
 
+  // GLOBAL KEYBOARD HANDLER (ESCAPE)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (activeTool !== 'select') {
+          setActiveTool('select');
+          setDrawingMode(null);
+          toast.info("Herramienta cancelada. Modo Selección activo.");
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [activeTool]);
+
   // EFFECT: Manejar aplicación automática de restricciones cuando la herramienta está activa
   useEffect(() => {
     if (activeTool === 'select' || activeTool === 'node') return;
@@ -192,7 +207,7 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
       setActiveTool('select');
       setSelectedNodes([]);
     }
-    else if (activeTool === 'constraint_distance' && selectedNodes.length === 2) {
+    else if (activeTool === 'dimension_linear' && selectedNodes.length === 2) {
       if (!previewData?.geometry?.vertices) return;
       
       const [nodeA, nodeB] = selectedNodes;
@@ -214,18 +229,99 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
 
         const dist = Math.sqrt(Math.pow(posB.x - posA.x, 2) + Math.pow(posB.y - posA.y, 2));
         
-        handleAddConstraint({
-          type: 'distance',
-          nodes: [nodeA, nodeB],
+        handleAddDimension({
+          type: 'linear',
           value: Number(dist.toFixed(1)),
-          enabled: true
+          elements: { nodes: [nodeA, nodeB] },
+          isParameter: false
         });
-        toast.success(`Restricción de distancia: ${dist.toFixed(1)}cm`);
+        toast.success(`Dimensión Lineal: ${dist.toFixed(1)}cm`);
         setActiveTool('select');
         setSelectedNodes([]);
       }
     }
-  }, [selectedNodes, activeTool]);
+    else if (activeTool === 'dimension_angular' && selectedLines.length === 2) {
+      if (!previewData?.geometry?.vertices) return;
+
+      const [l1, l2] = selectedLines;
+      const params = previewData.params || {};
+
+      const v1a = previewData.geometry.vertices[l1.from];
+      const v1b = previewData.geometry.vertices[l1.to];
+      const v2a = previewData.geometry.vertices[l2.from];
+      const v2b = previewData.geometry.vertices[l2.to];
+
+      if (v1a && v1b && v2a && v2b) {
+        const p1a = { x: typeof v1a.x === 'string' ? evaluateExpression(v1a.x, params) : v1a.x, y: typeof v1a.y === 'string' ? evaluateExpression(v1a.y, params) : v1a.y };
+        const p1b = { x: typeof v1b.x === 'string' ? evaluateExpression(v1b.x, params) : v1b.x, y: typeof v1b.y === 'string' ? evaluateExpression(v1b.y, params) : v1b.y };
+        const p2a = { x: typeof v2a.x === 'string' ? evaluateExpression(v2a.x, params) : v2a.x, y: typeof v2a.y === 'string' ? evaluateExpression(v2a.y, params) : v2a.y };
+        const p2b = { x: typeof v2b.x === 'string' ? evaluateExpression(v2b.x, params) : v2b.x, y: typeof v2b.y === 'string' ? evaluateExpression(v2b.y, params) : v2b.y };
+
+        // Encontrar vértice común (pivote) entre las dos líneas
+        let pivot: { x: number; y: number } | null = null;
+        let other1: { x: number; y: number } | null = null;
+        let other2: { x: number; y: number } | null = null;
+
+        if (l1.from === l2.from) {
+          pivot = p1a;
+          other1 = p1b;
+          other2 = p2b;
+        } else if (l1.from === l2.to) {
+          pivot = p1a;
+          other1 = p1b;
+          other2 = p2a;
+        } else if (l1.to === l2.from) {
+          pivot = p1b;
+          other1 = p1a;
+          other2 = p2b;
+        } else if (l1.to === l2.to) {
+          pivot = p1b;
+          other1 = p1a;
+          other2 = p2a;
+        }
+
+        if (!pivot || !other1 || !other2) {
+          toast.error('Las líneas deben compartir un vértice común');
+          setActiveTool('select');
+          setSelectedLines([]);
+          return;
+        }
+
+        // Calcular vectores desde el pivote hacia los otros extremos
+        const v1 = { x: other1.x - pivot.x, y: other1.y - pivot.y };
+        const v2 = { x: other2.x - pivot.x, y: other2.y - pivot.y };
+
+        // Magnitudes
+        const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
+        const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+
+        if (mag1 === 0 || mag2 === 0) {
+          toast.error('Las líneas tienen longitud cero');
+          setActiveTool('select');
+          setSelectedLines([]);
+          return;
+        }
+
+        // Producto punto para calcular el ángulo
+        const dot = v1.x * v2.x + v1.y * v2.y;
+        const cosTheta = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
+
+        // Ángulo en grados (siempre entre 0 y 180)
+        const angleDegrees = Math.acos(cosTheta) * 180 / Math.PI;
+
+        handleAddDimension({
+          type: 'angular',
+          value: Number(angleDegrees.toFixed(1)),
+          elements: { lines: [l1, l2] },
+          isParameter: false,
+          inverted: false
+        });
+        toast.success(`Dimensión Angular: ${angleDegrees.toFixed(1)}° (usa el botón de invertir para el ángulo externo)`);
+        setActiveTool('select');
+        setSelectedLines([]);
+      }
+    }
+  }, [selectedNodes, selectedLines, activeTool]);
 
   // ============================================================================
   // HANDLERS DE RESTRICCIONES
@@ -343,16 +439,20 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
     const dimension = dimensions.find(d => d.id === id);
     if (!dimension || dimension.type !== 'angular') return;
 
-    const currentValue = typeof dimension.value === 'number' ? dimension.value : 0;
-    const newValue = 360 - currentValue;
+    // Solo cambiar el flag inverted, sin modificar el valor
+    // El valor representa el ángulo interno (0-180°)
+    // El flag inverted indica si queremos controlar el ángulo externo (reflex)
     const newInverted = !dimension.inverted;
 
     const updatedDimensions = dimensions.map(d =>
-      d.id === id ? { ...d, value: newValue, inverted: newInverted } : d
+      d.id === id ? { ...d, inverted: newInverted } : d
     );
     setDimensions(updatedDimensions);
     updateGeometryWithConstraintsAndDimensions(constraints, updatedDimensions);
-    toast.success(`Ángulo invertido: ${newValue.toFixed(1)}°`);
+
+    const displayValue = typeof dimension.value === 'number' ? dimension.value : 0;
+    const newDisplayValue = newInverted ? (360 - displayValue) : displayValue;
+    toast.success(`Ángulo ${newInverted ? 'externo' : 'interno'}: ${newDisplayValue.toFixed(1)}°`);
   };
 
   // Utilidad para actualizar la geometría con constraints y dimensions
@@ -493,12 +593,51 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
     let perimeterId = `p${pIndex}`;
 
     switch (shape.type) {
+      case 'circle_primitive':
+        const { center, radiusPoint, radius } = shape;
+        const cIndex = (geometry.circles?.length || 0) + 1;
+        const circleId = `c${cIndex}`;
+        perimeterId = circleId; // Override for ID generation
+        
+        // Define IDs for nodes
+        const centerId = `${circleId}_center`;
+        const radiusId = `${circleId}_radius`;
+        
+        // Add vertices
+        newVertices[centerId] = { x: center.x.toFixed(1), y: center.y.toFixed(1) };
+        newVertices[radiusId] = { x: radiusPoint.x.toFixed(1), y: radiusPoint.y.toFixed(1) };
+        
+        // Update geometry
+        const newCircle = {
+          id: circleId,
+          center: centerId,
+          radiusPoint: radiusId
+        };
+        
+        const allVerticesWithCircle = { ...vertices, ...newVertices };
+        const allCircles = [...(geometry.circles || []), newCircle];
+        
+        // Add automatic dimension for radius
+        const newDim: Dimension = {
+          id: nanoid(),
+          type: 'linear',
+          value: Number(radius.toFixed(1)),
+          elements: { nodes: [centerId, radiusId] },
+          isParameter: false,
+          label: 'R'
+        };
+        
+        setDimensions([...dimensions, newDim]);
+        handleGeometryChange({ ...geometry, vertices: allVerticesWithCircle, circles: allCircles });
+        toast.success(`Círculo primitivo creado`);
+        return; // Exit early as we don't create a contour
+
       case 'polygon':
-        const { sides, radius } = shape;
+        const { sides, radius: pRadius } = shape;
         for (let i = 0; i < sides; i++) {
           const angle = (i / sides) * 2 * Math.PI - Math.PI / 2;
-          const x = (radius * Math.cos(angle)).toFixed(1);
-          const y = (radius * Math.sin(angle)).toFixed(1);
+          const x = (pRadius * Math.cos(angle)).toFixed(1);
+          const y = (pRadius * Math.sin(angle)).toFixed(1);
           const nodeId = `${perimeterId}n${i + 1}`;
           newVertices[nodeId] = { x, y };
 
@@ -561,6 +700,118 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
       toast.success(`Forma creada exitosamente`);
     } else {
       toast.success(`Forma "${perimeterId}" creada`);
+    }
+  };
+
+  const handleElementDelete = (type: 'node' | 'line' | 'circle', id: string, secondaryId?: string) => {
+    if (!previewData?.geometry) return;
+
+    const geometry = previewData.geometry;
+    const contours = geometry.contours || [];
+    let vertices = { ...geometry.vertices };
+    let currentConstraints = [...constraints];
+    let currentDimensions = [...dimensions];
+
+    let nodesToDelete: string[] = [];
+    let newContours = [...contours];
+    let newCircles = geometry.circles ? [...geometry.circles] : [];
+    let deleted = false;
+
+    if (type === 'circle') {
+      const circleIndex = newCircles.findIndex((c: any) => c.id === id);
+      if (circleIndex !== -1) {
+        const circle = newCircles[circleIndex];
+        nodesToDelete = [circle.center, circle.radiusPoint];
+        newCircles.splice(circleIndex, 1);
+        toast.success("Círculo eliminado");
+        deleted = true;
+      }
+    } else {
+      const targetNode = id;
+      const contourIndex = contours.findIndex((c: any) => 
+        c.elements.some((el: any) => el.from === targetNode || el.to === targetNode)
+      );
+
+      if (contourIndex === -1) return;
+      const contour = contours[contourIndex];
+
+      const contourNodes = new Set<string>();
+      contour.elements.forEach((el: any) => {
+        contourNodes.add(el.from);
+        contourNodes.add(el.to);
+      });
+
+      if (type === 'node') {
+        if (contourNodes.size <= 3) {
+          newContours = contours.filter((_: any, i: number) => i !== contourIndex);
+          nodesToDelete = Array.from(contourNodes);
+          toast.info("Contorno eliminado (menos de 3 nodos)");
+          deleted = true;
+        } else {
+          const elIn = contour.elements.find((el: any) => el.to === targetNode);
+          const elOut = contour.elements.find((el: any) => el.from === targetNode);
+          
+          if (elIn && elOut) {
+            const newElements = contour.elements.filter((el: any) => el !== elIn && el !== elOut);
+            newElements.push({ type: 'line', from: elIn.from, to: elOut.to });
+            newContours[contourIndex] = { ...contour, elements: newElements };
+            nodesToDelete = [targetNode];
+            toast.success("Nodo eliminado");
+            deleted = true;
+          }
+        }
+      } else if (type === 'line' && secondaryId) {
+        if (contourNodes.size <= 4) {
+           newContours = contours.filter((_: any, i: number) => i !== contourIndex);
+           nodesToDelete = Array.from(contourNodes);
+           toast.info("Contorno eliminado (menos de 3 nodos restantes)");
+           deleted = true;
+        } else {
+          const nodeA = id;
+          const nodeB = secondaryId;
+          const elPre = contour.elements.find((el: any) => el.to === nodeA);
+          const elLine = contour.elements.find((el: any) => el.from === nodeA && el.to === nodeB);
+          const elPost = contour.elements.find((el: any) => el.from === nodeB);
+
+          if (elPre && elLine && elPost) {
+            const newElements = contour.elements.filter((el: any) => el !== elPre && el !== elLine && el !== elPost);
+            newElements.push({ type: 'line', from: elPre.from, to: elPost.to });
+            newContours[contourIndex] = { ...contour, elements: newElements };
+            nodesToDelete = [nodeA, nodeB];
+            toast.success("Línea y nodos eliminados");
+            deleted = true;
+          }
+        }
+      }
+    }
+
+    if (deleted) {
+      // 1. Eliminar vértices
+      nodesToDelete.forEach(nodeId => delete vertices[nodeId]);
+
+      // 2. Limpiar Restricciones
+      const newConstraints = currentConstraints.filter(c => 
+        !c.nodes.some(n => nodesToDelete.includes(n))
+      );
+
+      // 3. Limpiar Dimensiones
+      const newDimensions = currentDimensions.filter(d => {
+        if (d.elements.nodes && d.elements.nodes.some(n => nodesToDelete.includes(n))) return false;
+        if (d.elements.lines && d.elements.lines.some(l => nodesToDelete.includes(l.from) || nodesToDelete.includes(l.to))) return false;
+        return true;
+      });
+
+      // Actualizar estado y geometría
+      setConstraints(newConstraints);
+      setDimensions(newDimensions);
+      handleGeometryChange({ 
+        ...geometry, 
+        vertices, 
+        contours: newContours,
+        circles: newCircles, // Update circles
+        constraints: newConstraints,
+        dimensions: newDimensions
+      });
     }
   };
 
@@ -697,6 +948,7 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                   activeTool={activeTool}
                   drawingMode={drawingMode}
                   onShapeCreate={handleCreateShape}
+                  onElementDelete={handleElementDelete}
                   onSelectionChange={(nodes, lines) => {
                     setSelectedNodes(nodes);
                     setSelectedLines(lines);
@@ -755,6 +1007,7 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                         activeTool={activeTool} 
                         onToolChange={handleToolChange} 
                         selectedNodes={selectedNodes}
+                        selectedLines={selectedLines}
                         vertices={
                           previewData?.geometry?.vertices
                             ? Object.fromEntries(
@@ -769,140 +1022,143 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                             : {}
                         }
                         onAddConstraint={handleAddConstraint}
+                        onAddDimension={handleAddDimension}
                       />
                     </div>
           
-                    {/* ZONA SCROLLABLE: PROPIEDADES Y PANELES */}
-                    <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-                      {/* RESTRICCIONES */}
-                      <ConstraintsPanel
-                        constraints={constraints}
-                        onToggleConstraint={handleToggleConstraint}
-                        onRemoveConstraint={handleRemoveConstraint}
-                      />
-            {/* DIMENSIONES */}
-            <DimensionsPanel
-              dimensions={dimensions}
-              selectedNodes={selectedNodes}
-              selectedLines={selectedLines}
-              vertices={
-                previewData?.geometry?.vertices
-                  ? Object.fromEntries(
-                      Object.entries(previewData.geometry.vertices).map(([id, v]: [string, any]) => [
-                        id,
-                        {
-                          x: evaluateExpression(v.x, previewData.params || {}),
-                          y: evaluateExpression(v.y, previewData.params || {})
-                        }
-                      ])
-                    )
-                  : {}
-              }
-              onAddDimension={handleAddDimension}
-              onUpdateDimension={handleUpdateDimension}
-              onRemoveDimension={handleRemoveDimension}
-              onToggleDimensionParameter={handleToggleDimensionParameter}
-              onInvertAngle={handleInvertAngle}
-            />
+                    {/* ZONA SCROLLABLE: PROPIEDADES Y PANELES (TABS) */}
+                    <div className="flex-1 overflow-y-auto pr-2 pb-2">
+                      <Tabs defaultValue="coords" className="w-full">
+                        <TabsList className="grid w-full grid-cols-5 h-9 bg-zinc-900/50 p-1 gap-1">
+                          <TabsTrigger value="coords" title="Coordenadas" className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><BoxSelect className="h-4 w-4" /></TabsTrigger>
+                          <TabsTrigger value="params" title="Parámetros" className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><SlidersHorizontal className="h-4 w-4" /></TabsTrigger>
+                          <TabsTrigger value="constraints" title="Restricciones" className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Lock className="h-4 w-4" /></TabsTrigger>
+                          <TabsTrigger value="dimensions" title="Dimensiones" className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Ruler className="h-4 w-4" /></TabsTrigger>
+                          <TabsTrigger value="json" title="JSON" className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Code className="h-4 w-4" /></TabsTrigger>
+                        </TabsList>
 
-            {/* TRANSFORMACIONES PARAMÉTRICAS */}
-            <TransformationPanel
-              selectedNodes={selectedNodes}
-              vertices={previewData?.geometry?.vertices || {}}
-              onTransform={handleTransform}
-              onClearSelection={() => setSelectedNodes([])}
-            />
+                        <div className="mt-3 space-y-4">
+                          {/* TAB: COORDENADAS (Editor Visual + Transformaciones) */}
+                          <TabsContent value="coords" className="space-y-4 m-0 animate-in fade-in slide-in-from-right-2 duration-300">
+                            {previewData?.geometry && (
+                              <VisualGeometryEditor
+                                geometry={previewData.geometry}
+                                params={previewData.params || {}}
+                                onChange={handleGeometryChange}
+                              />
+                            )}
+                            <TransformationPanel
+                              selectedNodes={selectedNodes}
+                              vertices={previewData?.geometry?.vertices || {}}
+                              onTransform={handleTransform}
+                              onClearSelection={() => setSelectedNodes([])}
+                            />
+                          </TabsContent>
 
-            {/* HERRAMIENTAS GEOMÉTRICAS (FORMAS PREDEFINIDAS) */}
-            <GeometryTools onCreateShape={handleCreateShape} />
+                          {/* TAB: PARÁMETROS */}
+                          <TabsContent value="params" className="m-0 animate-in fade-in slide-in-from-right-2 duration-300">
+                            {previewData?.params && (
+                              <ParamsPanel
+                                params={previewData.params}
+                                onParamChange={handleParamChange}
+                              />
+                            )}
+                          </TabsContent>
 
-            {/* PARÁMETROS INTERACTIVOS */}
-            {previewData?.params && (
-              <ParamsPanel
-                params={previewData.params}
-                onParamChange={handleParamChange}
-              />
-            )}
+                          {/* TAB: RESTRICCIONES */}
+                          <TabsContent value="constraints" className="m-0 animate-in fade-in slide-in-from-right-2 duration-300">
+                            <ConstraintsPanel
+                              constraints={constraints}
+                              onToggleConstraint={handleToggleConstraint}
+                              onRemoveConstraint={handleRemoveConstraint}
+                            />
+                          </TabsContent>
 
-            {/* EDITOR VISUAL DE GEOMETRÍA */}
-            {previewData?.geometry && (
-              <VisualGeometryEditor
-                geometry={previewData.geometry}
-                params={previewData.params || {}}
-                onChange={handleGeometryChange}
-              />
-            )}
+                          {/* TAB: DIMENSIONES */}
+                          <TabsContent value="dimensions" className="m-0 animate-in fade-in slide-in-from-right-2 duration-300">
+                            <DimensionsPanel
+                              dimensions={dimensions}
+                              vertices={
+                                previewData?.geometry?.vertices
+                                  ? Object.fromEntries(
+                                      Object.entries(previewData.geometry.vertices).map(([id, v]: [string, any]) => [
+                                        id,
+                                        {
+                                          x: evaluateExpression(v.x, previewData.params || {}),
+                                          y: evaluateExpression(v.y, previewData.params || {})
+                                        }
+                                      ])
+                                    )
+                                  : {}
+                              }
+                              onUpdateDimension={handleUpdateDimension}
+                              onRemoveDimension={handleRemoveDimension}
+                              onToggleDimensionParameter={handleToggleDimensionParameter}
+                              onInvertAngle={handleInvertAngle}
+                            />
+                          </TabsContent>
 
-            {/* EDITOR JSON - PLEGABLE */}
-            <details className="group">
-              <summary className="cursor-pointer list-none">
-                <Card className="border-zinc-700 hover:border-primary/50 transition-colors">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Code className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Editor JSON (Avanzado)</span>
-                    </div>
-                    <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 text-muted-foreground" />
-                  </CardContent>
-                </Card>
-              </summary>
-              <Card className="mt-2 border-zinc-800">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-xs uppercase font-bold text-primary">JSON</Label>
-                    <div className="flex gap-2 items-center">
-                      {jsonParseError ? (
-                        <Badge variant="destructive" className="text-[9px] gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          Error
-                        </Badge>
-                      ) : validationErrors.length > 0 ? (
-                        <Badge variant="destructive" className="text-[9px] gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {validationErrors.length} Errores
-                        </Badge>
-                      ) : jsonContent && !jsonParseError ? (
-                        <Badge variant="default" className="text-[9px] gap-1 bg-green-600">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Válido
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </div>
-                  <Textarea
-                    value={jsonContent}
-                    onChange={e => handleJsonChange(e.target.value)}
-                    rows={12}
-                    className="font-mono text-[11px] bg-zinc-950 text-emerald-400 p-3 rounded border-zinc-800"
-                  />
-                  {jsonParseError && (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded p-2 flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                      <div className="text-xs">
-                        <p className="font-bold text-red-400">Error JSON</p>
-                        <p className="text-red-300 font-mono text-[10px]">{jsonParseError}</p>
-                      </div>
-                    </div>
-                  )}
-                  {!jsonParseError && validationErrors.length > 0 && (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                        <div className="text-xs flex-1">
-                          <p className="font-bold text-red-400">Errores de Geometría</p>
-                          <ul className="text-red-300 space-y-0.5 text-[10px]">
-                            {validationErrors.map((error, i) => (
-                              <li key={i} className="font-mono">• {error}</li>
-                            ))}
-                          </ul>
+                          {/* TAB: JSON */}
+                          <TabsContent value="json" className="m-0 animate-in fade-in slide-in-from-right-2 duration-300">
+                            <Card className="border-zinc-800">
+                              <CardContent className="p-4 space-y-3">
+                                <div className="flex justify-between items-center">
+                                  <Label className="text-xs uppercase font-bold text-primary">JSON</Label>
+                                  <div className="flex gap-2 items-center">
+                                    {jsonParseError ? (
+                                      <Badge variant="destructive" className="text-[9px] gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        Error
+                                      </Badge>
+                                    ) : validationErrors.length > 0 ? (
+                                      <Badge variant="destructive" className="text-[9px] gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        {validationErrors.length} Errores
+                                      </Badge>
+                                    ) : jsonContent && !jsonParseError ? (
+                                      <Badge variant="default" className="text-[9px] gap-1 bg-green-600">
+                                        <CheckCircle2 className="h-3 w-3" />
+                                        Válido
+                                      </Badge>
+                                    ) : null}
+                                  </div>
+                                </div>
+                                <Textarea
+                                  value={jsonContent}
+                                  onChange={e => handleJsonChange(e.target.value)}
+                                  rows={20}
+                                  className="font-mono text-[11px] bg-zinc-950 text-emerald-400 p-3 rounded border-zinc-800"
+                                />
+                                {jsonParseError && (
+                                  <div className="bg-red-500/10 border border-red-500/30 rounded p-2 flex items-start gap-2">
+                                    <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                                    <div className="text-xs">
+                                      <p className="font-bold text-red-400">Error JSON</p>
+                                      <p className="text-red-300 font-mono text-[10px]">{jsonParseError}</p>
+                                    </div>
+                                  </div>
+                                )}
+                                {!jsonParseError && validationErrors.length > 0 && (
+                                  <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
+                                    <div className="flex items-start gap-2">
+                                      <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                                      <div className="text-xs flex-1">
+                                        <p className="font-bold text-red-400">Errores de Geometría</p>
+                                        <ul className="text-red-300 space-y-0.5 text-[10px]">
+                                          {validationErrors.map((error, i) => (
+                                            <li key={i} className="font-mono">• {error}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          </TabsContent>
                         </div>
-                      </div>
+                      </Tabs>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </details>
-          </div>
         </div>
 
       </div>
