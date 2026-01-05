@@ -16,24 +16,10 @@ export default defineConfig(() => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              // React y sus dependencias primero (incluyendo react-three)
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || id.includes('@react-three') || id.includes('scheduler')) {
-                return 'react-vendor';
-              }
-              // Three.js puro (sin react-three)
-              if (id.includes('three') && !id.includes('@react-three')) {
-                return 'three-engine';
-              }
-              if (id.includes('fabric')) {
-                return 'fabric-engine';
-              }
-              if (id.includes('@radix-ui') || id.includes('lucide')) {
-                return 'ui-libs';
-              }
-              return 'vendor-utils';
-            }
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'three-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
+            'fabric-vendor': ['fabric'],
           },
         },
       },
