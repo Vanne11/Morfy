@@ -11,8 +11,10 @@ import { CaseDetailsModal } from "@/features/case-details-modal/CaseDetailsModal
 import { CreateCaseModal } from "@/features/create-case-modal/CreateCaseModal";
 import { db } from "@/app/db";
 import type { Case } from "@/types";
+import { useTranslation } from "react-i18next";
 
 export function Dashboard() {
+  const { t } = useTranslation();
   const cases = useLiveQuery(() => db.cases.toArray()) ?? [];
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -24,20 +26,20 @@ export function Dashboard() {
     if (action === "delete") {
       try {
         await db.cases.delete(caseId);
-        toast.success(`Caso "${caseItem.name}" eliminado.`);
+        toast.success(t("pages.dashboard.toastDeleted", { name: caseItem.name }));
       } catch (error) {
         console.error("Error deleting case:", error);
-        toast.error("Error al eliminar el caso.");
+        toast.error(t("pages.dashboard.toastDeleteError"));
       }
       return;
     }
 
     let actionText = "";
     switch(action) {
-      case "duplicate": actionText = "duplicado"; break;
-      case "archive": actionText = "archivado"; break;
+      case "duplicate": actionText = t("pages.dashboard.actionDuplicated"); break;
+      case "archive": actionText = t("pages.dashboard.actionArchived"); break;
     }
-    toast.success(`Caso "${caseItem.name}" ${actionText} (simulación).`);
+    toast.success(t("pages.dashboard.toastAction", { name: caseItem.name, action: actionText }));
   }
 
   return (
@@ -45,17 +47,17 @@ export function Dashboard() {
       <div className="p-4 sm:p-6 lg:p-8 space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div>
-            <h1 className="text-2xl font-bold">Casos de Pacientes</h1>
+            <h1 className="text-2xl font-bold">{t("pages.dashboard.title")}</h1>
             <p className="text-muted-foreground">
-              Selecciona un caso para ver sus detalles o abrir el editor.
+              {t("pages.dashboard.description")}
             </p>
           </div>
-          <Button onClick={() => setIsCreateModalOpen(true)}>Nuevo Caso de Paciente</Button>
+          <Button onClick={() => setIsCreateModalOpen(true)}>{t("pages.dashboard.newCase")}</Button>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {cases?.length === 0 && (
              <div className="col-span-full text-center py-10 text-muted-foreground">
-               No hay casos registrados. Crea uno nuevo para comenzar.
+               {t("pages.dashboard.noCases")}
              </div>
           )}
           {cases.map((caseItem) => (
@@ -75,20 +77,20 @@ export function Dashboard() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setSelectedCase(caseItem)}>Ver/Editar Detalles</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAction('duplicate', caseItem.id)}>Duplicar</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAction('archive', caseItem.id)}>Archivar</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive" onClick={() => handleAction('delete', caseItem.id)}>Eliminar</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSelectedCase(caseItem)}>{t("pages.dashboard.viewDetails")}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAction('duplicate', caseItem.id)}>{t("pages.dashboard.duplicate")}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAction('archive', caseItem.id)}>{t("pages.dashboard.archive")}</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => handleAction('delete', caseItem.id)}>{t("pages.dashboard.delete")}</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               </CardHeader>
               <CardContent className="flex justify-between items-center">
                  <Badge variant={caseItem.status === "Completado" ? "default" : "secondary"}>
-                  {caseItem.status}
+                  {t(`common.statuses.${caseItem.status.toLowerCase()}`)}
                 </Badge>
                 <Button asChild variant="secondary" size="sm">
-                  <Link to={`/project/${caseItem.id}`}>Abrir Editor</Link>
+                  <Link to={`/project/${caseItem.id}`}>{t("pages.dashboard.openEditor")}</Link>
                 </Button>
               </CardContent>
             </Card>

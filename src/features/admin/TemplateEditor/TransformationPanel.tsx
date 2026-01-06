@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Move, Minus, Maximize2, RotateCw, FlipHorizontal, FlipVertical, Circle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface TransformationPanelProps {
   selectedNodes: string[];
@@ -13,6 +14,7 @@ interface TransformationPanelProps {
 }
 
 export function TransformationPanel({ selectedNodes, onTransform, onClearSelection }: TransformationPanelProps) {
+  const { t } = useTranslation();
   const [translateX, setTranslateX] = useState("0");
   const [translateY, setTranslateY] = useState("0");
   const [scaleValue, setScaleValue] = useState("1");
@@ -28,18 +30,18 @@ export function TransformationPanel({ selectedNodes, onTransform, onClearSelecti
         <div className="flex justify-between items-center">
           <CardTitle className="text-sm flex items-center gap-2">
             <Move className="h-4 w-4 text-primary" />
-            Transformaciones ({selectedNodes.length} nodos)
+            {t("features.transformationPanel.title", { count: selectedNodes.length })}
           </CardTitle>
           <Button onClick={onClearSelection} size="sm" variant="ghost" className="h-6 px-2 text-xs">
             <Minus className="h-3 w-3 mr-1" />
-            Limpiar
+            {t("features.transformationPanel.clear")}
           </Button>
         </div>
       </CardHeader>
       <CardContent className="p-3 space-y-3">
         {/* TRASLADAR */}
         <div className="space-y-2">
-          <Label className="text-[10px] uppercase font-bold text-zinc-400">Trasladar</Label>
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">{t("features.transformationPanel.translate")}</Label>
           <div className="grid grid-cols-3 gap-2">
             <Input
               type="number"
@@ -70,14 +72,14 @@ export function TransformationPanel({ selectedNodes, onTransform, onClearSelecti
               size="sm"
               className="h-7 text-xs"
             >
-              Aplicar
+              {t("features.transformationPanel.apply")}
             </Button>
           </div>
         </div>
 
         {/* ESCALAR */}
         <div className="space-y-2">
-          <Label className="text-[10px] uppercase font-bold text-zinc-400">Escalar</Label>
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">{t("features.transformationPanel.scale")}</Label>
           <div className="grid grid-cols-2 gap-2">
             <Input
               type="number"
@@ -99,14 +101,14 @@ export function TransformationPanel({ selectedNodes, onTransform, onClearSelecti
               className="h-7 text-xs gap-1"
             >
               <Maximize2 className="h-3 w-3" />
-              Aplicar
+              {t("features.transformationPanel.apply")}
             </Button>
           </div>
         </div>
 
         {/* ROTAR */}
         <div className="space-y-2">
-          <Label className="text-[10px] uppercase font-bold text-zinc-400">Rotar</Label>
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">{t("features.transformationPanel.rotate")}</Label>
           <div className="grid grid-cols-2 gap-2">
             <Input
               type="number"
@@ -128,14 +130,14 @@ export function TransformationPanel({ selectedNodes, onTransform, onClearSelecti
               className="h-7 text-xs gap-1"
             >
               <RotateCw className="h-3 w-3" />
-              Aplicar
+              {t("features.transformationPanel.apply")}
             </Button>
           </div>
         </div>
 
         {/* REFLEJAR */}
         <div className="space-y-2">
-          <Label className="text-[10px] uppercase font-bold text-zinc-400">Reflejar</Label>
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">{t("features.transformationPanel.flip")}</Label>
           <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={() => onTransform({ type: 'flip', axis: 'x' })}
@@ -144,7 +146,7 @@ export function TransformationPanel({ selectedNodes, onTransform, onClearSelecti
               className="h-7 text-xs gap-1"
             >
               <FlipHorizontal className="h-3 w-3" />
-              Horizontal
+              {t("features.transformationPanel.horizontal")}
             </Button>
             <Button
               onClick={() => onTransform({ type: 'flip', axis: 'y' })}
@@ -153,14 +155,14 @@ export function TransformationPanel({ selectedNodes, onTransform, onClearSelecti
               className="h-7 text-xs gap-1"
             >
               <FlipVertical className="h-3 w-3" />
-              Vertical
+              {t("features.transformationPanel.vertical")}
             </Button>
           </div>
         </div>
 
         {/* DISTRIBUIR */}
         <div className="space-y-2">
-          <Label className="text-[10px] uppercase font-bold text-zinc-400">Distribuir</Label>
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">{t("features.transformationPanel.distribute")}</Label>
           <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={() => onTransform({ type: 'distribute', mode: 'circular' })}
@@ -169,7 +171,7 @@ export function TransformationPanel({ selectedNodes, onTransform, onClearSelecti
               className="h-7 text-xs gap-1"
             >
               <Circle className="h-3 w-3" />
-              Circular
+              {t("features.transformationPanel.circular")}
             </Button>
             <Button
               onClick={() => onTransform({ type: 'distribute', mode: 'line' })}
@@ -178,14 +180,14 @@ export function TransformationPanel({ selectedNodes, onTransform, onClearSelecti
               className="h-7 text-xs gap-1"
             >
               <Minus className="h-3 w-3" />
-              Lineal
+              {t("features.transformationPanel.linear")}
             </Button>
           </div>
         </div>
 
         {/* ALINEAR */}
         <div className="space-y-2">
-          <Label className="text-[10px] uppercase font-bold text-zinc-400">Alinear</Label>
+          <Label className="text-[10px] uppercase font-bold text-zinc-400">{t("features.transformationPanel.align")}</Label>
           <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={() => onTransform({ type: 'align', axis: 'x' })}
@@ -193,7 +195,7 @@ export function TransformationPanel({ selectedNodes, onTransform, onClearSelecti
               variant="secondary"
               className="h-7 text-xs gap-1"
             >
-              Horizontal
+              {t("features.transformationPanel.horizontal")}
             </Button>
             <Button
               onClick={() => onTransform({ type: 'align', axis: 'y' })}
@@ -201,7 +203,7 @@ export function TransformationPanel({ selectedNodes, onTransform, onClearSelecti
               variant="secondary"
               className="h-7 text-xs gap-1"
             >
-              Vertical
+              {t("features.transformationPanel.vertical")}
             </Button>
           </div>
         </div>

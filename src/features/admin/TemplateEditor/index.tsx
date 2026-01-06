@@ -35,8 +35,10 @@ import { FabricGeometryEditor } from "./FabricGeometryEditor";
 import { VisualGeometryEditor } from "./VisualGeometryEditor";
 import { ParamsPanel } from "./ParamsPanel";
 import { ToolsPanel, type ToolType } from "./ToolsPanel";
+import { useTranslation } from "react-i18next";
 
 export function TemplateEditor({ template, isSystemTemplate = false, onSaved, onCancel }: TemplateEditorProps) {
+  const { t } = useTranslation();
   const previewRef = useRef<any>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("General");
@@ -959,22 +961,22 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Code className="h-6 w-6 text-primary" />
-            Editor de Plantillas
+            {t("features.templateEditor.title")}
           </h2>
           <p className="text-xs text-muted-foreground mt-1 ml-8">
-            Grid: 1cm x 1cm
+            {t("features.templateEditor.gridInfo")}
           </p>
           {isSystemTemplate && (
             <p className="text-xs text-blue-500 mt-1 ml-8">
-              Editando plantilla del sistema - se creará una copia al guardar
+              {t("features.templateEditor.systemTemplateWarning")}
             </p>
           )}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+          <Button variant="outline" onClick={onCancel}>{t("features.templateEditor.cancel")}</Button>
           <Button onClick={handleSave} disabled={isSaving} className="gap-2">
             <Camera className="h-4 w-4" />
-            {isSaving ? "Guardando..." : isSystemTemplate ? "Guardar Copia" : "Guardar"}
+            {isSaving ? t("features.templateEditor.saving") : isSystemTemplate ? t("features.templateEditor.saveCopy") : t("features.templateEditor.save")}
           </Button>
         </div>
       </div>
@@ -984,16 +986,16 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
         <CardContent className="p-4">
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs font-bold">Nombre</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre de la plantilla" />
+              <Label className="text-xs font-bold">{t("features.templateEditor.nameLabel")}</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder={t("features.templateEditor.namePlaceholder")} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-bold">Categoría</Label>
-              <Input value={category} onChange={e => setCategory(e.target.value)} placeholder="Ej. Dedos" />
+              <Label className="text-xs font-bold">{t("features.templateEditor.categoryLabel")}</Label>
+              <Input value={category} onChange={e => setCategory(e.target.value)} placeholder={t("features.templateEditor.categoryPlaceholder")} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-bold">Descripción</Label>
-              <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Instrucciones breves" />
+              <Label className="text-xs font-bold">{t("features.templateEditor.descriptionLabel")}</Label>
+              <Input value={description} onChange={e => setDescription(e.target.value)} placeholder={t("features.templateEditor.descriptionPlaceholder")} />
             </div>
           </div>
         </CardContent>
@@ -1010,12 +1012,12 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                 <div className="flex flex-col gap-1">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Shapes className="h-5 w-5 text-primary" />
-                    Editor Visual de Geometría
+                    {t("features.templateEditor.visualEditorTitle")}
                   </CardTitle>
                   <div className="text-[10px] text-muted-foreground flex gap-3 ml-7">
-                    <span>• Selecciona nodos para transformar</span>
-                    <span className="hidden xl:inline">• Ctrl+Click: selección múltiple</span>
-                    <span className="hidden xl:inline">• Doble-click en línea: agregar nodo</span>
+                    <span>{t("features.templateEditor.visualEditorHint1")}</span>
+                    <span className="hidden xl:inline">{t("features.templateEditor.visualEditorHint2")}</span>
+                    <span className="hidden xl:inline">{t("features.templateEditor.visualEditorHint3")}</span>
                   </div>
                 </div>
                 <Button
@@ -1025,7 +1027,7 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                   className="gap-2"
                 >
                   <Camera className="h-4 w-4" />
-                  Ver 3D
+                  {t("features.templateEditor.view3D")}
                 </Button>
               </div>
             </CardHeader>
@@ -1092,7 +1094,7 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                       {/* ZONA FIJA: HERRAMIENTAS */}
                     <div className="flex-none space-y-2">
                       <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                        Herramientas
+                        {t("features.templateEditor.toolsTitle")}
                       </Label>
                       <ToolsPanel 
                         activeTool={activeTool} 
@@ -1121,11 +1123,11 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                     <div className="flex-1 overflow-y-auto pr-2 pb-2">
                       <Tabs defaultValue="coords" className="w-full">
                         <TabsList className="grid w-full grid-cols-5 h-9 bg-zinc-900/50 p-1 gap-1">
-                          <TabsTrigger value="coords" title="Coordenadas" className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><BoxSelect className="h-4 w-4" /></TabsTrigger>
-                          <TabsTrigger value="params" title="Parámetros" className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><SlidersHorizontal className="h-4 w-4" /></TabsTrigger>
-                          <TabsTrigger value="constraints" title="Restricciones" className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Lock className="h-4 w-4" /></TabsTrigger>
-                          <TabsTrigger value="dimensions" title="Dimensiones" className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Ruler className="h-4 w-4" /></TabsTrigger>
-                          <TabsTrigger value="json" title="JSON" className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Code className="h-4 w-4" /></TabsTrigger>
+                          <TabsTrigger value="coords" title={t("features.templateEditor.tabCoords")} className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><BoxSelect className="h-4 w-4" /></TabsTrigger>
+                          <TabsTrigger value="params" title={t("features.templateEditor.tabParams")} className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><SlidersHorizontal className="h-4 w-4" /></TabsTrigger>
+                          <TabsTrigger value="constraints" title={t("features.templateEditor.tabConstraints")} className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Lock className="h-4 w-4" /></TabsTrigger>
+                          <TabsTrigger value="dimensions" title={t("features.templateEditor.tabDimensions")} className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Ruler className="h-4 w-4" /></TabsTrigger>
+                          <TabsTrigger value="json" title={t("features.templateEditor.tabJson")} className="text-[10px] p-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Code className="h-4 w-4" /></TabsTrigger>
                         </TabsList>
 
                         <div className="mt-3 space-y-4">
@@ -1194,22 +1196,22 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                             <Card className="border-zinc-800">
                               <CardContent className="p-4 space-y-3">
                                 <div className="flex justify-between items-center">
-                                  <Label className="text-xs uppercase font-bold text-primary">JSON</Label>
+                                  <Label className="text-xs uppercase font-bold text-primary">{t("features.templateEditor.jsonLabel")}</Label>
                                   <div className="flex gap-2 items-center">
                                     {jsonParseError ? (
                                       <Badge variant="destructive" className="text-[9px] gap-1">
                                         <AlertCircle className="h-3 w-3" />
-                                        Error
+                                        {t("features.templateEditor.jsonErrorBadge")}
                                       </Badge>
                                     ) : validationErrors.length > 0 ? (
                                       <Badge variant="destructive" className="text-[9px] gap-1">
                                         <AlertCircle className="h-3 w-3" />
-                                        {validationErrors.length} Errores
+                                        {validationErrors.length} {t("features.templateEditor.jsonErrorsBadge")}
                                       </Badge>
                                     ) : jsonContent && !jsonParseError ? (
                                       <Badge variant="default" className="text-[9px] gap-1 bg-green-600">
                                         <CheckCircle2 className="h-3 w-3" />
-                                        Válido
+                                        {t("features.templateEditor.jsonValidBadge")}
                                       </Badge>
                                     ) : null}
                                   </div>
@@ -1224,7 +1226,7 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                                   <div className="bg-red-500/10 border border-red-500/30 rounded p-2 flex items-start gap-2">
                                     <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
                                     <div className="text-xs">
-                                      <p className="font-bold text-red-400">Error JSON</p>
+                                      <p className="font-bold text-red-400">{t("features.templateEditor.jsonErrorTitle")}</p>
                                       <p className="text-red-300 font-mono text-[10px]">{jsonParseError}</p>
                                     </div>
                                   </div>
@@ -1234,7 +1236,7 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                                     <div className="flex items-start gap-2">
                                       <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
                                       <div className="text-xs flex-1">
-                                        <p className="font-bold text-red-400">Errores de Geometría</p>
+                                        <p className="font-bold text-red-400">{t("features.templateEditor.geometryErrorsTitle")}</p>
                                         <ul className="text-red-300 space-y-0.5 text-[10px]">
                                           {validationErrors.map((error, i) => (
                                             <li key={i} className="font-mono">• {error}</li>
@@ -1259,7 +1261,7 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 animate-in fade-in duration-200">
           <div className="bg-background border border-border rounded-lg shadow-2xl w-[90vw] h-[90vh] max-w-6xl flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 className="text-lg font-bold">Vista Previa 3D</h3>
+              <h3 className="text-lg font-bold">{t("features.templateEditor.preview3DTitle")}</h3>
               <Button
                 onClick={() => setShow3DModal(false)}
                 variant="ghost"
@@ -1279,9 +1281,9 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
       <Dialog open={showModeSelectionModal} onOpenChange={setShowModeSelectionModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Modo de Dibujo</DialogTitle>
+            <DialogTitle>{t("features.templateEditor.drawModeTitle")}</DialogTitle>
             <DialogDescription>
-              Ya existe una geometría. ¿Cómo deseas proceder?
+              {t("features.templateEditor.drawModeDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 py-4">
@@ -1290,14 +1292,14 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                 setActiveTool('node');
                 setDrawingMode('add_external');
                 setShowModeSelectionModal(false);
-                toast.info("Modo edición: Haz clic cerca de una línea para insertar un nodo.");
+                toast.info(t("features.templateEditor.toastDrawModeExternal"));
               }}
               variant="default"
               className="justify-start"
             >
               <div className="flex flex-col items-start text-left">
-                <span className="font-bold">Añadir a Perímetro Externo</span>
-                <span className="text-xs font-normal opacity-90">Insertar nodos en el contorno existente</span>
+                <span className="font-bold">{t("features.templateEditor.drawModeAddExternal")}</span>
+                <span className="text-xs font-normal opacity-90">{t("features.templateEditor.drawModeAddExternalDesc")}</span>
               </div>
             </Button>
             <Button
@@ -1305,20 +1307,20 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                 setActiveTool('node');
                 setDrawingMode('add_hole');
                 setShowModeSelectionModal(false);
-                toast.info("Modo hueco: Dibuja un polígono interno.");
+                toast.info(t("features.templateEditor.toastDrawModeHole"));
               }}
               variant="outline"
               className="justify-start"
             >
               <div className="flex flex-col items-start text-left">
-                <span className="font-bold">Crear Perímetro Interno</span>
-                <span className="text-xs font-normal opacity-70 text-muted-foreground">Dibujar un hueco dentro de la forma</span>
+                <span className="font-bold">{t("features.templateEditor.drawModeAddHole")}</span>
+                <span className="text-xs font-normal opacity-70 text-muted-foreground">{t("features.templateEditor.drawModeAddHoleDesc")}</span>
               </div>
             </Button>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setShowModeSelectionModal(false)}>
-              Cancelar
+              {t("features.templateEditor.cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1332,18 +1334,18 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Crear Parámetro Interactivo</DialogTitle>
+            <DialogTitle>{t("features.templateEditor.createParamTitle")}</DialogTitle>
             <DialogDescription>
-              Asigna un nombre para este parámetro. Aparecerá en el panel de parámetros interactivos.
+              {t("features.templateEditor.createParamDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Nombre del Parámetro</Label>
+              <Label>{t("features.templateEditor.paramNameLabel")}</Label>
               <Input
                 value={newParamName}
                 onChange={(e) => setNewParamName(e.target.value)}
-                placeholder="Ej. Largo, Ancho, Radio..."
+                placeholder={t("features.templateEditor.paramNamePlaceholder")}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleConfirmParamCreation();
                 }}
@@ -1351,7 +1353,7 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
               />
             </div>
             <div className="text-xs text-muted-foreground">
-              Valor actual: <span className="font-mono text-primary">{paramCreationDialog.initialValue}cm</span>
+              {t("features.templateEditor.currentValue")} <span className="font-mono text-primary">{paramCreationDialog.initialValue}cm</span>
             </div>
           </div>
           <DialogFooter>
@@ -1359,10 +1361,10 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                setParamCreationDialog({ open: false, dimensionId: null, initialValue: 0 });
                setNewParamName("");
             }}>
-              Cancelar
+              {t("features.templateEditor.cancel")}
             </Button>
             <Button onClick={handleConfirmParamCreation}>
-              Crear Parámetro
+              {t("features.templateEditor.createParamButton")}
             </Button>
           </DialogFooter>
         </DialogContent>

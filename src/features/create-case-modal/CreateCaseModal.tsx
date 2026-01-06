@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/app/db";
 import type { Case } from "@/types";
+import { useTranslation } from "react-i18next";
 
 interface CreateCaseModalProps {
   open: boolean;
@@ -22,6 +23,7 @@ interface CreateCaseModalProps {
 }
 
 export function CreateCaseModal({ open, onOpenChange }: CreateCaseModalProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
@@ -30,7 +32,7 @@ export function CreateCaseModal({ open, onOpenChange }: CreateCaseModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error("El nombre del paciente es obligatorio.");
+      toast.error(t("features.createCaseModal.toastNameRequired"));
       return;
     }
 
@@ -46,7 +48,7 @@ export function CreateCaseModal({ open, onOpenChange }: CreateCaseModalProps) {
       };
 
       await db.cases.add(newCase);
-      toast.success("Caso creado exitosamente.");
+      toast.success(t("features.createCaseModal.toastSuccess"));
       
       // Reset form and close
       setName("");
@@ -55,7 +57,7 @@ export function CreateCaseModal({ open, onOpenChange }: CreateCaseModalProps) {
       onOpenChange(false);
     } catch (error) {
       console.error("Error creating case:", error);
-      toast.error("Ocurrió un error al crear el caso.");
+      toast.error(t("features.createCaseModal.toastError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -65,51 +67,51 @@ export function CreateCaseModal({ open, onOpenChange }: CreateCaseModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Nuevo Caso de Paciente</DialogTitle>
+          <DialogTitle>{t("features.createCaseModal.title")}</DialogTitle>
           <DialogDescription>
-            Ingresa los detalles básicos del paciente para comenzar un nuevo tratamiento.
+            {t("features.createCaseModal.description")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Nombre
+              {t("features.createCaseModal.labelName")}
             </Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ej. Juan Pérez"
+              placeholder={t("features.createCaseModal.placeholderName")}
               className="col-span-3"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="description" className="text-right">
-              Descripción
+              {t("features.createCaseModal.labelDescription")}
             </Label>
             <Input
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ej. Lesión tendón extensor"
+              placeholder={t("features.createCaseModal.placeholderDescription")}
               className="col-span-3"
             />
           </div>
           <div className="grid grid-cols-4 items-start gap-4">
             <Label htmlFor="notes" className="text-right pt-2">
-              Notas
+              {t("features.createCaseModal.labelNotes")}
             </Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Notas adicionales..."
+              placeholder={t("features.createCaseModal.placeholderNotes")}
               className="col-span-3"
             />
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creando..." : "Crear Caso"}
+              {isSubmitting ? t("features.createCaseModal.buttonCreating") : t("features.createCaseModal.buttonCreate")}
             </Button>
           </DialogFooter>
         </form>

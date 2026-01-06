@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTranslation } from "react-i18next";
 
 export type ToolType = 'select' | 'node' | 'eraser' | 'constraint_fixed' | 'constraint_horizontal' | 'constraint_vertical' | 'dimension_linear' | 'dimension_angular' | 'rect' | 'circle' | 'polygon' | 'array';
 
@@ -46,6 +47,7 @@ export function ToolsPanel({
   onAddConstraint,
   onAddDimension
 }: ToolsPanelProps) {
+  const { t } = useTranslation();
 
   const canAddHorizontal = selectedNodes.length >= 2;
   const canAddVertical = selectedNodes.length >= 2;
@@ -67,17 +69,17 @@ export function ToolsPanel({
       selectedNodes.forEach(nodeId => {
         onAddConstraint({ type: 'fixed', nodes: [nodeId], enabled: true });
       });
-      toast.success(`${selectedNodes.length} nodo(s) fijado(s)`);
+      toast.success(t("features.toolsPanel.toastFixed", { count: selectedNodes.length }));
       applied = true;
     } 
     else if (toolTarget === 'constraint_horizontal' && canAddHorizontal) {
       onAddConstraint({ type: 'horizontal', nodes: [...selectedNodes], enabled: true });
-      toast.success('Restricción Horizontal añadida');
+      toast.success(t("features.toolsPanel.toastHorizontalAdded"));
       applied = true;
     }
     else if (toolTarget === 'constraint_vertical' && canAddVertical) {
       onAddConstraint({ type: 'vertical', nodes: [...selectedNodes], enabled: true });
-      toast.success('Restricción Vertical añadida');
+      toast.success(t("features.toolsPanel.toastVerticalAdded"));
       applied = true;
     }
 
@@ -94,7 +96,7 @@ export function ToolsPanel({
           elements: { nodes: [nodeA, nodeB] },
           isParameter: false
         });
-        toast.success(`Dimensión Lineal: ${dist.toFixed(1)}cm`);
+        toast.success(t("features.toolsPanel.toastLinearAdded", { value: dist.toFixed(1) }));
         applied = true;
       }
     }
@@ -120,7 +122,7 @@ export function ToolsPanel({
           elements: { lines: [l1, l2] },
           isParameter: false
         });
-        toast.success(`Dimensión Angular: ${angleDiff.toFixed(1)}°`);
+        toast.success(t("features.toolsPanel.toastAngularAdded", { value: angleDiff.toFixed(1) }));
         applied = true;
       }
     }
@@ -133,16 +135,16 @@ export function ToolsPanel({
       
       let msg = "";
       switch (toolTarget) {
-        case 'constraint_fixed': msg = "Selecciona nodo(s) para fijar"; break;
-        case 'constraint_horizontal': msg = "Selecciona 2+ nodos para alinear horizontalmente"; break;
-        case 'constraint_vertical': msg = "Selecciona 2+ nodos para alinear verticalmente"; break;
-        case 'dimension_linear': msg = "Selecciona 2 nodos para medir distancia"; break;
-        case 'dimension_angular': msg = "Selecciona 2 líneas para medir ángulo"; break;
-        case 'eraser': msg = "Haz clic en nodos o líneas para eliminar"; break;
-        case 'rect': msg = "Modo Rectángulo: Haz clic en el canvas para posicionar (Próximamente)"; break;
-        case 'circle': msg = "Modo Círculo: Haz clic en el canvas para posicionar (Próximamente)"; break;
-        case 'polygon': msg = "Modo Polígono: Haz clic en el canvas para posicionar (Próximamente)"; break;
-        case 'array': msg = "Modo Patrón: Selecciona objetos para repetir (Próximamente)"; break;
+        case 'constraint_fixed': msg = t("features.toolsPanel.msgFixed"); break;
+        case 'constraint_horizontal': msg = t("features.toolsPanel.msgHorizontal"); break;
+        case 'constraint_vertical': msg = t("features.toolsPanel.msgVertical"); break;
+        case 'dimension_linear': msg = t("features.toolsPanel.msgLinear"); break;
+        case 'dimension_angular': msg = t("features.toolsPanel.msgAngular"); break;
+        case 'eraser': msg = t("features.toolsPanel.msgEraser"); break;
+        case 'rect': msg = t("features.toolsPanel.msgRect"); break;
+        case 'circle': msg = t("features.toolsPanel.msgCircle"); break;
+        case 'polygon': msg = t("features.toolsPanel.msgPolygon"); break;
+        case 'array': msg = t("features.toolsPanel.msgArray"); break;
       }
       if (msg) toast.info(msg);
     }
@@ -166,7 +168,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Seleccionar (V)</p>
+                <p>{t("features.toolsPanel.tooltipSelect")}</p>
               </TooltipContent>
             </Tooltip>
             
@@ -182,7 +184,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Herramienta Nodo (N)</p>
+                <p>{t("features.toolsPanel.tooltipNode")}</p>
               </TooltipContent>
             </Tooltip>
 
@@ -198,7 +200,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Borrar (Clic en nodo o línea)</p>
+                <p>{t("features.toolsPanel.tooltipEraser")}</p>
               </TooltipContent>
             </Tooltip>
 
@@ -216,7 +218,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Rectángulo</p>
+                <p>{t("features.toolsPanel.tooltipRect")}</p>
               </TooltipContent>
             </Tooltip>
 
@@ -232,7 +234,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Círculo</p>
+                <p>{t("features.toolsPanel.tooltipCircle")}</p>
               </TooltipContent>
             </Tooltip>
 
@@ -248,7 +250,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Polígono</p>
+                <p>{t("features.toolsPanel.tooltipPolygon")}</p>
               </TooltipContent>
             </Tooltip>
 
@@ -264,7 +266,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Patrón (Array)</p>
+                <p>{t("features.toolsPanel.tooltipArray")}</p>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -284,7 +286,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Fijar (Selecciona nodo)</p>
+                <p>{t("features.toolsPanel.tooltipFixed")}</p>
               </TooltipContent>
             </Tooltip>
 
@@ -300,7 +302,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Horizontal (Selecciona 2+ nodos)</p>
+                <p>{t("features.toolsPanel.tooltipHorizontal")}</p>
               </TooltipContent>
             </Tooltip>
 
@@ -316,7 +318,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Vertical (Selecciona 2+ nodos)</p>
+                <p>{t("features.toolsPanel.tooltipVertical")}</p>
               </TooltipContent>
             </Tooltip>
 
@@ -335,7 +337,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Dimensión Lineal (Selecciona 2 nodos)</p>
+                <p>{t("features.toolsPanel.tooltipLinear")}</p>
               </TooltipContent>
             </Tooltip>
 
@@ -351,7 +353,7 @@ export function ToolsPanel({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">
-                <p>Dimensión Angular (Selecciona 2 líneas)</p>
+                <p>{t("features.toolsPanel.tooltipAngular")}</p>
               </TooltipContent>
             </Tooltip>
 

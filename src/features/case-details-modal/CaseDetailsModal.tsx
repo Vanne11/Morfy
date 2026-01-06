@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { Case } from "@/types"; // Importar desde la nueva ubicación
+import { useTranslation } from "react-i18next";
 
 interface CaseDetailsModalProps {
   caseData: Case | null;
@@ -14,6 +15,7 @@ interface CaseDetailsModalProps {
 }
 
 export function CaseDetailsModal({ caseData, onOpenChange }: CaseDetailsModalProps) {
+  const { t } = useTranslation();
   if (!caseData) return null;
 
   const handleSaveNotes = (event: React.FormEvent) => {
@@ -21,7 +23,7 @@ export function CaseDetailsModal({ caseData, onOpenChange }: CaseDetailsModalPro
     const formData = new FormData(event.target as HTMLFormElement);
     const notes = formData.get("notes");
     console.log("Guardando notas:", notes);
-    toast.success("Notas guardadas con éxito (simulación).");
+    toast.success(t("features.caseDetailsModal.toastSaveNotesSuccess"));
   };
 
   return (
@@ -33,31 +35,48 @@ export function CaseDetailsModal({ caseData, onOpenChange }: CaseDetailsModalPro
         </DialogHeader>
         <Tabs defaultValue="notes" className="w-full">
           <TabsList>
-            <TabsTrigger value="notes">Notas y Comentarios</TabsTrigger>
-            <TabsTrigger value="gallery">Galería de Resultados</TabsTrigger>
+            <TabsTrigger value="notes">{t("features.caseDetailsModal.tabNotes")}</TabsTrigger>
+            <TabsTrigger value="gallery">{t("features.caseDetailsModal.tabGallery")}</TabsTrigger>
           </TabsList>
           <TabsContent value="notes" className="mt-4">
              <form onSubmit={handleSaveNotes} className="space-y-4">
               <Textarea 
                 name="notes"
-                placeholder="Añade comentarios sobre el progreso, ajustes necesarios, etc."
+                placeholder={t("features.caseDetailsModal.placeholderNotes")}
                 defaultValue={caseData.notes}
                 rows={10}
               />
-              <Button type="submit">Guardar Notas</Button>
+              <Button type="submit">{t("features.caseDetailsModal.buttonSaveNotes")}</Button>
             </form>
           </TabsContent>
           <TabsContent value="gallery" className="mt-4">
             <div className="space-y-4">
                <div className="grid w-full max-w-sm items-center gap-1.5">
-                <Label htmlFor="picture">Subir Fotografía</Label>
-                <Input id="picture" type="file" />
+                <Label htmlFor="picture">{t("features.caseDetailsModal.labelUpload")}</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    id="picture" 
+                    type="file" 
+                    className="hidden" 
+                    onChange={(e) => {
+                      const fileName = e.target.files?.[0]?.name;
+                      if (fileName) toast.info(`${t("features.caseDetailsModal.toastUploading")} (${fileName})`);
+                    }}
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => document.getElementById('picture')?.click()}
+                    className="w-full"
+                  >
+                    {t("features.caseDetailsModal.buttonChooseFile")}
+                  </Button>
+                </div>
               </div>
-              <Button onClick={() => toast.info("Subiendo fotografía (simulación)...")}>
-                Añadir a la Galería
+              <Button className="w-full" onClick={() => toast.info(t("features.caseDetailsModal.toastUploading"))}>
+                {t("features.caseDetailsModal.buttonAddGallery")}
               </Button>
               <div className="p-4 border-dashed border-2 rounded-lg min-h-[200px] flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">La galería de resultados está vacía.</p>
+                <p className="text-sm text-muted-foreground">{t("features.caseDetailsModal.emptyGallery")}</p>
               </div>
             </div>
           </TabsContent>

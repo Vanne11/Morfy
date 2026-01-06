@@ -9,6 +9,7 @@ import {
   type Vertex2D,
   constraintSolver
 } from "@/utils/constraintSolver";
+import { useTranslation } from "react-i18next";
 
 interface DimensionsPanelProps {
   dimensions: Dimension[];
@@ -26,6 +27,7 @@ interface DimensionInputProps {
 }
 
 function DimensionInput({ dimension, vertices, onUpdate }: DimensionInputProps) {
+  const { t } = useTranslation();
   const [localValue, setLocalValue] = useState<string>(
     (typeof dimension.value === 'number' ? dimension.value : 0).toString()
   );
@@ -60,13 +62,13 @@ function DimensionInput({ dimension, vertices, onUpdate }: DimensionInputProps) 
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-[9px] text-muted-foreground">
-        <span>Actual: {currentValue.toFixed(1)}cm</span>
-        <span>Objetivo: {targetDisplay}</span>
+        <span>{t("features.templateEditor.current")}: {currentValue.toFixed(1)}cm</span>
+        <span>{t("features.templateEditor.target")}: {targetDisplay}</span>
       </div>
       
       {isParameter ? (
         <div className="text-[10px] text-primary font-mono italic bg-primary/10 p-1 rounded px-2">
-          Controlado por {dimension.label || 'parámetro'}
+          {t("features.templateEditor.controlledBy", { label: dimension.label || 'parámetro' })}
         </div>
       ) : (
         <div className="flex gap-2">
@@ -83,9 +85,9 @@ function DimensionInput({ dimension, vertices, onUpdate }: DimensionInputProps) 
             size="sm"
             variant="default"
             className="h-7 px-2 text-xs"
-            title="Aplicar dimensión"
+            title={t("features.templateEditor.apply")}
           >
-            Aplicar
+            {t("features.templateEditor.apply")}
           </Button>
         </div>
       )}
@@ -101,6 +103,7 @@ export function DimensionsPanel({
   onToggleDimensionParameter,
   onInvertAngle
 }: DimensionsPanelProps) {
+  const { t } = useTranslation();
 
   const getDimensionIcon = (type: Dimension['type']) => {
     switch (type) {
@@ -127,7 +130,7 @@ export function DimensionsPanel({
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Ruler className="h-4 w-4 text-primary" />
-          Dimensiones ({dimensions.length})
+          {t("features.templateEditor.dimensionsTitle")} ({dimensions.length})
         </CardTitle>
       </CardHeader>
       <CardContent className="p-3 space-y-3">
@@ -135,7 +138,7 @@ export function DimensionsPanel({
         {dimensions.length > 0 ? (
           <div className="space-y-2">
             <Label className="text-[10px] uppercase font-bold text-zinc-400">
-              Dimensiones Activas
+              {t("features.templateEditor.activeDimensions")}
             </Label>
             <div className="space-y-2 max-h-[250px] overflow-y-auto">
               {dimensions.map(dimension => {
@@ -158,7 +161,7 @@ export function DimensionsPanel({
                             size="sm"
                             variant="ghost"
                             className="h-6 px-2 text-[10px]"
-                            title="Invertir lado del ángulo"
+                            title={t("features.templateEditor.invertAngle")}
                           >
                             <RefreshCw className="h-3 w-3" />
                           </Button>
@@ -168,7 +171,7 @@ export function DimensionsPanel({
                           size="sm"
                           variant="ghost"
                           className="h-6 px-2 text-[10px]"
-                          title={dimension.isParameter ? 'Remover de parámetros' : 'Convertir en parámetro'}
+                          title={dimension.isParameter ? t("features.templateEditor.removeParam") : t("features.templateEditor.convertToParam")}
                         >
                           {dimension.isParameter ? '📌' : '📍'}
                         </Button>
@@ -195,7 +198,7 @@ export function DimensionsPanel({
           </div>
         ) : (
           <div className="text-[10px] text-muted-foreground text-center py-2">
-            No hay dimensiones activas
+            {t("features.templateEditor.noDimensions")}
           </div>
         )}
       </CardContent>

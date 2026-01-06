@@ -4,14 +4,17 @@ import { buttonVariants } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { LayoutDashboard, Library, Settings } from "lucide-react";
-
-const links = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/library", label: "Librería", icon: Library },
-  { to: "/admin", label: "Configuración", icon: Settings },
-];
+import { useTranslation } from "react-i18next";
 
 export function Sidebar() {
+  const { t } = useTranslation();
+
+  const links = [
+    { to: "/", label: t("sidebar.dashboard"), icon: LayoutDashboard },
+    { to: "/library", label: t("sidebar.library"), icon: Library },
+    { to: "/admin", label: t("sidebar.settings"), icon: Settings },
+  ];
+
   return (
     <aside className="h-screen w-16 flex flex-col items-center border-r bg-background py-4 space-y-2">
       <TooltipProvider delayDuration={0}>

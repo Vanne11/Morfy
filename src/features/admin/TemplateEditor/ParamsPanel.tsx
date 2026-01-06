@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ParamsPanelProps {
   params: Record<string, any>;
@@ -9,12 +10,14 @@ interface ParamsPanelProps {
 }
 
 export function ParamsPanel({ params, onParamChange }: ParamsPanelProps) {
+  const { t } = useTranslation();
+
   return (
     <Card className="border-zinc-700">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Info className="h-4 w-4 text-primary" />
-          Parámetros Interactivos
+          {t("features.templateEditor.paramsTitle")}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-3 space-y-3">
@@ -27,7 +30,7 @@ export function ParamsPanel({ params, onParamChange }: ParamsPanelProps) {
             return (
               <div key={key} className="flex items-center justify-between gap-4">
                 <Label className="text-[10px] uppercase font-bold text-zinc-400 min-w-[80px]">
-                  {isHeight ? "Altura" : key}
+                  {isHeight ? t("features.templateEditor.height") : key}
                 </Label>
                 <div className="flex gap-2 items-center flex-1 justify-end">
                   <Input

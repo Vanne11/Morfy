@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, ArrowLeftRight, ArrowUpDown, Ruler, Cable, Trash2 } from "lucide-react";
 import { type Constraint } from "@/utils/constraintSolver";
+import { useTranslation } from "react-i18next";
 
 interface ConstraintsPanelProps {
   constraints: Constraint[];
@@ -15,6 +16,7 @@ export function ConstraintsPanel({
   onToggleConstraint,
   onRemoveConstraint
 }: ConstraintsPanelProps) {
+  const { t } = useTranslation();
 
   const getConstraintIcon = (type: Constraint['type']) => {
     switch (type) {
@@ -29,13 +31,13 @@ export function ConstraintsPanel({
   const getConstraintLabel = (constraint: Constraint) => {
     switch (constraint.type) {
       case 'fixed':
-        return `Fijo: ${constraint.nodes[0]}`;
+        return t("features.templateEditor.constraintFixed", { node: constraint.nodes[0] });
       case 'horizontal':
-        return `Horizontal: ${constraint.nodes.join(', ')}`;
+        return t("features.templateEditor.constraintHorizontal", { nodes: constraint.nodes.join(', ') });
       case 'vertical':
-        return `Vertical: ${constraint.nodes.join(', ')}`;
+        return t("features.templateEditor.constraintVertical", { nodes: constraint.nodes.join(', ') });
       case 'distance':
-        return `Distancia: ${constraint.nodes.join(' ↔ ')} = ${constraint.value}cm`;
+        return t("features.templateEditor.constraintDistance", { nodes: constraint.nodes.join(' ↔ '), value: constraint.value });
       default:
         return constraint.type;
     }
@@ -46,7 +48,7 @@ export function ConstraintsPanel({
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Lock className="h-4 w-4 text-primary" />
-          Restricciones ({constraints.length})
+          {t("features.templateEditor.constraintsTitle")} ({constraints.length})
         </CardTitle>
       </CardHeader>
       <CardContent className="p-3 space-y-3">
@@ -54,7 +56,7 @@ export function ConstraintsPanel({
         {constraints.length > 0 ? (
           <div className="space-y-2">
             <Label className="text-[10px] uppercase font-bold text-zinc-400">
-              Restricciones Activas
+              {t("features.templateEditor.activeConstraints")}
             </Label>
             <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
               {constraints.map(constraint => (
@@ -76,7 +78,7 @@ export function ConstraintsPanel({
                       size="sm"
                       variant="ghost"
                       className="h-6 w-6 p-0"
-                      title={constraint.enabled ? 'Desactivar' : 'Activar'}
+                      title={constraint.enabled ? t("features.templateEditor.deactivate") : t("features.templateEditor.activate")}
                     >
                       {constraint.enabled ? '👁️' : '👁️‍🗨️'}
                     </Button>
@@ -95,7 +97,7 @@ export function ConstraintsPanel({
           </div>
         ) : (
           <div className="text-[10px] text-muted-foreground text-center py-2">
-            No hay restricciones activas
+            {t("features.templateEditor.noConstraints")}
           </div>
         )}
       </CardContent>

@@ -8,12 +8,14 @@ import { Separator } from "@/components/ui/separator";
 import { LibraryModal } from "../library-modal/LibraryModal";
 import { db } from "@/app/db";
 import type { SelectedObject } from "@/types";
+import { useTranslation, Trans } from "react-i18next";
 
 interface ProjectGalleryProps {
   onObjectSelect: (obj: SelectedObject) => void;
 }
 
 export function ProjectGallery({ onObjectSelect }: ProjectGalleryProps) {
+  const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   
@@ -38,12 +40,12 @@ export function ProjectGallery({ onObjectSelect }: ProjectGalleryProps) {
     <>
       <div className="h-full flex flex-col bg-muted/30">
         <div className="p-4">
-          <h2 className="text-lg font-semibold">Modelos del Caso</h2>
-          <p className="text-xs text-muted-foreground">Paciente ID: {projectId}</p>
+          <h2 className="text-lg font-semibold">{t("features.projectGallery.title")}</h2>
+          <p className="text-xs text-muted-foreground">{t("features.projectGallery.patientId", { id: projectId })}</p>
           <div className="flex gap-2 mt-3">
-            <Button size="sm" className="w-full" disabled>Cargar Local</Button>
+            <Button size="sm" className="w-full" disabled>{t("features.projectGallery.loadLocal")}</Button>
             <Button size="sm" variant="secondary" className="w-full" onClick={() => setIsLibraryOpen(true)}>
-              Usar Librería
+              {t("features.projectGallery.useLibrary")}
             </Button>
           </div>
         </div>
@@ -66,9 +68,11 @@ export function ProjectGallery({ onObjectSelect }: ProjectGalleryProps) {
             ))
           ) : (
             <div className="text-center text-sm text-muted-foreground mt-10 px-4">
-              Este caso aún no tiene modelos 3D asociados.
+              {t("features.projectGallery.noModels")}
               <br />
-              Usa la <strong>Librería</strong> para añadir uno.
+              <Trans i18nKey="features.projectGallery.useLibraryToAdd">
+                Usa la <strong>Librería</strong> para añadir uno.
+              </Trans>
             </div>
           )}
         </div>

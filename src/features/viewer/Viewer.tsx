@@ -18,6 +18,7 @@ import type { SelectedObject } from "@/types";
 import { Banana } from "./components/Banana";
 import { SVGParametricModel } from "./components/SVGParametricModel";
 import { exportToSTL } from "../export/export";
+import { useTranslation } from "react-i18next";
 
 // --- Gestor de Exportación ---
 function ExportManager() {
@@ -79,6 +80,7 @@ function LoadedModel({ url }: { url: string }) {
 }
 
 function ParametricModel({ data }: { data: any }) {
+  const { t } = useTranslation();
   if (!data || !data.params || !data.geometry) {
       return (
         <group position={[0, 10, 0]}>
@@ -86,7 +88,7 @@ function ParametricModel({ data }: { data: any }) {
                 <sphereGeometry args={[10, 16, 16]} />
                 <meshBasicMaterial color="red" wireframe />
             </mesh>
-            <Html center><span className="bg-black/80 text-white p-1 text-xs rounded">Template Inválido</span></Html>
+            <Html center><span className="bg-black/80 text-white p-1 text-xs rounded">{t("features.viewer.invalidTemplate")}</span></Html>
         </group>
       );
   }
@@ -124,6 +126,7 @@ export function Viewer({
     selectedObject: SelectedObject,
     parametricData?: any
 }) {
+  const { t } = useTranslation();
   const [showBanana, setShowBanana] = useState(false);
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [rulerPoints, setRulerPoints] = useState<THREE.Vector3[]>([]);
@@ -151,37 +154,37 @@ export function Viewer({
       {/* UI Overlay (Top Left) */}
       {selectedObject && (
         <div className="absolute top-4 left-4 z-10 bg-background/80 px-3 py-2 rounded-lg backdrop-blur shadow-sm border border-border">
-          <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-tight">Modelo Activo</p>
+          <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-tight">{t("features.viewer.activeModel")}</p>
           <p className="text-sm font-semibold">{selectedObject.name}</p>
-          {isJson && <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded mt-1 inline-block uppercase font-bold">Paramétrico</span>}
+          {isJson && <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded mt-1 inline-block uppercase font-bold">{t("features.viewer.parametric")}</span>}
         </div>
       )}
 
       {/* UI Overlay (Top Right) */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 bg-background/80 p-2 rounded-lg backdrop-blur shadow-sm border">
         
-        <Button variant="default" size="icon" className="h-8 w-8 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleExportClick} title="Exportar STL">
+        <Button variant="default" size="icon" className="h-8 w-8 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleExportClick} title={t("features.viewer.exportSTL")}>
            <Download className="h-4 w-4" />
         </Button>
 
         <div className="h-px bg-border my-1" />
 
-        <Button variant={isRulerActive ? "destructive" : "ghost"} size="icon" className="h-8 w-8" onClick={() => { setIsRulerActive(!isRulerActive); if (!isRulerActive) setRulerPoints([]); }} title="Regla">
+        <Button variant={isRulerActive ? "destructive" : "ghost"} size="icon" className="h-8 w-8" onClick={() => { setIsRulerActive(!isRulerActive); if (!isRulerActive) setRulerPoints([]); }} title={t("features.viewer.ruler")}>
            <RulerIcon className="h-4 w-4" />
         </Button>
         
         {rulerPoints.length > 0 && (
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRulerPoints([])} title="Limpiar"><Trash2 className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRulerPoints([])} title={t("features.viewer.clear")}><Trash2 className="h-4 w-4" /></Button>
         )}
         
         <div className="h-px bg-border my-1" />
         
-        <Button variant={showBanana ? "default" : "ghost"} size="icon" className="h-8 w-8 text-yellow-500" onClick={() => setShowBanana(!showBanana)} title="Banana">
+        <Button variant={showBanana ? "default" : "ghost"} size="icon" className="h-8 w-8 text-yellow-500" onClick={() => setShowBanana(!showBanana)} title={t("features.viewer.banana")}>
            <BananaIcon className="h-4 w-4" />
         </Button>
       </div>
 
-      {isRulerActive && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-red-500 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse">Haz clic en dos puntos</div>}
+      {isRulerActive && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-red-500 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse">{t("features.viewer.clickPoints")}</div>}
 
       <Canvas shadows dpr={[1, 2]} camera={{ position: [150, 150, 150], fov: 45, near: 0.1, far: 50000 }}>
         <ExportManager />
@@ -189,7 +192,7 @@ export function Viewer({
         <directionalLight position={[100, 200, 100]} intensity={1.5} castShadow />
         <gridHelper args={[400, 40, "gray", "#e5e5e5"]} position={[0, -0.05, 0]} />
 
-        <Suspense fallback={<Html center><div className="flex flex-col items-center gap-2"><Loader2 className="animate-spin" /><span>Cargando...</span></div></Html>}>
+        <Suspense fallback={<Html center><div className="flex flex-col items-center gap-2"><Loader2 className="animate-spin" /><span>{t("features.viewer.loading")}</span></div></Html>}>
             {selectedObject?.fileUrl && (
                 isJson ? <ParametricModel data={parametricData} /> : <Center top><LoadedModel url={selectedObject.fileUrl} /></Center>
             )}

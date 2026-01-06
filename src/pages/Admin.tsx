@@ -7,7 +7,7 @@ import { Settings, Languages, Palette, Moon, Sun, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Admin() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [currentLanguage, setCurrentLanguage] = useState(i18n.language || 'es');
   const [theme, setTheme] = useState<'light' | 'dark'>(
     () => (localStorage.getItem('theme') as 'light' | 'dark') || 'light'
@@ -21,14 +21,14 @@ export function Admin() {
   const handleLanguageChange = (newLang: string) => {
     i18n.changeLanguage(newLang);
     setCurrentLanguage(newLang);
-    toast.success(newLang === 'es' ? 'Idioma cambiado a Español' : 'Language changed to English');
+    toast.success(newLang === 'es' ? t("pages.admin.toastLangEs") : t("pages.admin.toastLangEn"));
   };
 
   const handleThemeChange = (newTheme: 'light' | 'dark') => {
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
-    toast.success(newTheme === 'dark' ? 'Tema oscuro activado' : 'Tema claro activado');
+    toast.success(newTheme === 'dark' ? t("pages.admin.toastDark") : t("pages.admin.toastLight"));
   };
 
   return (
@@ -36,10 +36,10 @@ export function Admin() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <Settings className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Configuración</h1>
+          <h1 className="text-2xl font-bold">{t("pages.admin.title")}</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Personaliza la apariencia y preferencias de la aplicación.
+          {t("pages.admin.description")}
         </p>
       </div>
 
@@ -50,10 +50,10 @@ export function Admin() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Languages className="h-5 w-5 text-primary" />
-              <CardTitle>Idioma</CardTitle>
+              <CardTitle>{t("pages.admin.language")}</CardTitle>
             </div>
             <CardDescription>
-              Selecciona el idioma de la interfaz de usuario.
+              {t("pages.admin.languageDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -65,8 +65,8 @@ export function Admin() {
               <div className="flex items-center gap-3 w-full">
                 {currentLanguage === 'es' && <Check className="h-4 w-4" />}
                 <div className="flex-1 text-left">
-                  <div className="font-medium">Español</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">Configuración regional de América Latina</div>
+                  <div className="font-medium">{t("pages.admin.spanish")}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{t("pages.admin.spanishDesc")}</div>
                 </div>
               </div>
             </Button>
@@ -78,8 +78,8 @@ export function Admin() {
               <div className="flex items-center gap-3 w-full">
                 {currentLanguage === 'en' && <Check className="h-4 w-4" />}
                 <div className="flex-1 text-left">
-                  <div className="font-medium">English</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">United States regional settings</div>
+                  <div className="font-medium">{t("pages.admin.english")}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{t("pages.admin.englishDesc")}</div>
                 </div>
               </div>
             </Button>
@@ -91,10 +91,10 @@ export function Admin() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Palette className="h-5 w-5 text-primary" />
-              <CardTitle>Apariencia</CardTitle>
+              <CardTitle>{t("pages.admin.appearance")}</CardTitle>
             </div>
             <CardDescription>
-              Elige entre tema claro u oscuro para la interfaz.
+              {t("pages.admin.appearanceDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -106,8 +106,8 @@ export function Admin() {
               <div className="flex items-center gap-3 w-full">
                 <Sun className="h-5 w-5" />
                 <div className="flex-1 text-left">
-                  <div className="font-medium">Tema Claro</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">Interfaz con colores brillantes y fondos claros</div>
+                  <div className="font-medium">{t("pages.admin.lightTheme")}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{t("pages.admin.lightThemeDesc")}</div>
                 </div>
                 {theme === 'light' && <Check className="h-4 w-4" />}
               </div>
@@ -120,8 +120,8 @@ export function Admin() {
               <div className="flex items-center gap-3 w-full">
                 <Moon className="h-5 w-5" />
                 <div className="flex-1 text-left">
-                  <div className="font-medium">Tema Oscuro</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">Reduce el brillo para entornos con poca luz</div>
+                  <div className="font-medium">{t("pages.admin.darkTheme")}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{t("pages.admin.darkThemeDesc")}</div>
                 </div>
                 {theme === 'dark' && <Check className="h-4 w-4" />}
               </div>
@@ -132,19 +132,19 @@ export function Admin() {
         {/* Información del Sistema */}
         <Card className="border-muted/50">
           <CardHeader>
-            <CardTitle className="text-sm">Información del Sistema</CardTitle>
+            <CardTitle className="text-sm">{t("pages.admin.systemInfo")}</CardTitle>
           </CardHeader>
           <CardContent className="text-xs space-y-2 text-muted-foreground">
             <div className="flex justify-between py-1 border-b border-border/50">
-              <span>Versión de Morfy:</span>
+              <span>{t("pages.admin.version")}</span>
               <span className="font-mono">1.0.0</span>
             </div>
             <div className="flex justify-between py-1 border-b border-border/50">
-              <span>Motor de Parametrización:</span>
+              <span>{t("pages.admin.engine")}</span>
               <span className="font-mono">Calculated Flat V1</span>
             </div>
             <div className="flex justify-between py-1">
-              <span>Base de Datos:</span>
+              <span>{t("pages.admin.database")}</span>
               <span className="font-mono">Dexie (IndexedDB)</span>
             </div>
           </CardContent>

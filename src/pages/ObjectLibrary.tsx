@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { nanoid } from "nanoid";
@@ -13,7 +14,15 @@ interface ManagedTemplate extends ITemplate {
   isSystem?: boolean;
 }
 
+const systemTemplateKeys: Record<string, string> = {
+  "Férula de Dedo Anatómica": "fingerSplintAnatomic",
+  "Férula Simple (Centímetros)": "simpleSplint",
+  "Férula Palmar con Arcos": "palmarSplint",
+  "Férula de Muñeca con Ventilación": "wristSplint"
+};
+
 export function ObjectLibrary() {
+  const { t } = useTranslation();
   const [editingTemplate, setEditingTemplate] = useState<ManagedTemplate | null | undefined>(undefined);
   const [systemTemplates, setSystemTemplates] = useState<ManagedTemplate[]>([]);
   const customTemplates = useLiveQuery(() => db.templates.toArray()) ?? [];
@@ -80,7 +89,7 @@ export function ObjectLibrary() {
     return (
       <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
         <Button variant="ghost" size="sm" onClick={() => setEditingTemplate(undefined)} className="gap-2 mb-4">
-          <ArrowLeft className="h-4 w-4" /> Volver a la Librería
+          <ArrowLeft className="h-4 w-4" /> {t("pages.objectLibrary.back")}
         </Button>
         <TemplateEditor
           template={editingTemplate}
@@ -96,11 +105,11 @@ export function ObjectLibrary() {
     <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Librería de Plantillas</h1>
-          <p className="text-sm text-muted-foreground">Explora plantillas del sistema o crea tus propias férulas personalizadas.</p>
+          <h1 className="text-2xl font-bold">{t("pages.objectLibrary.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("pages.objectLibrary.description")}</p>
         </div>
         <Button onClick={() => setEditingTemplate(null)} className="gap-2">
-          <Plus className="h-4 w-4" /> Nueva Plantilla
+          <Plus className="h-4 w-4" /> {t("pages.objectLibrary.newTemplate")}
         </Button>
       </div>
 
@@ -109,16 +118,33 @@ export function ObjectLibrary() {
           {allTemplates.length === 0 && (
             <div className="col-span-full py-12 text-center border-2 border-dashed rounded-lg">
               <FileJson className="h-12 w-12 mx-auto text-muted-foreground opacity-20 mb-4" />
-              <p className="text-muted-foreground">No hay plantillas disponibles.</p>
+              <p className="text-muted-foreground">{t("pages.objectLibrary.noTemplates")}</p>
             </div>
           )}
 
-          {allTemplates.map(tpl => (
+          {allTemplates.map(tpl => {
+            // Traducir nombre y descripción si es una plantilla del sistema conocida
+            let displayName = tpl.name;
+            let displayDesc = tpl.description;
+
+            if (tpl.isSystem && systemTemplateKeys[tpl.name]) {
+              const key = systemTemplateKeys[tpl.name];
+              displayName = t(`templates.${key}`);
+              // Intentar traducir la descripción si existe una clave asociada
+              const descKey = `templates.${key}Desc`;
+              const translatedDesc = t(descKey);
+              // Si la traducción es diferente a la clave (es decir, existe), usarla
+              if (translatedDesc !== descKey) {
+                displayDesc = translatedDesc;
+              }
+            }
+
+            return (
             <Card key={tpl.id} className={tpl.isSystem ? "bg-muted/20 border-dashed overflow-hidden" : "hover:border-primary/50 transition-colors overflow-hidden"}>
               {/* Espacio para la miniatura */}
               <div className="aspect-video w-full bg-muted relative group">
                   {tpl.thumbnail ? (
-                      <img src={tpl.thumbnail} alt={tpl.name} className="w-full h-full object-cover" />
+                      <img src={tpl.thumbnail} alt={displayName} className="w-full h-full object-cover" />
                   ) : (
                       <div className="w-full h-full flex items-center justify-center opacity-20">
                           <FileJson className="h-12 w-12" />
@@ -126,7 +152,7 @@ export function ObjectLibrary() {
                   )}
                   {tpl.isSystem && (
                       <div className="absolute inset-0 bg-black/5 flex items-center justify-center">
-                           <Badge variant="secondary" className="bg-background/80 backdrop-blur">Solo Lectura</Badge>
+                           <Badge variant="secondary" className="bg-background/80 backdrop-blur">{t("pages.objectLibrary.readOnly")}</Badge>
                       </div>
                   )}
               </div>
@@ -135,23 +161,23 @@ export function ObjectLibrary() {
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-base truncate max-w-[150px]">{tpl.name}</CardTitle>
+                      <CardTitle className="text-base truncate max-w-[150px]">{displayName}</CardTitle>
                       <Badge variant={tpl.isSystem ? "outline" : "default"} className="text-[8px] uppercase px-1 h-4">
-                          {tpl.isSystem ? "Sistema" : "Mía"}
+                          {tpl.isSystem ? t("pages.objectLibrary.badgeSystem") : t("pages.objectLibrary.badgeCustom")}
                       </Badge>
                     </div>
                     <CardDescription className="text-xs">{tpl.category}</CardDescription>
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDuplicate(tpl)} title="Duplicar">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDuplicate(tpl)} title={t("pages.objectLibrary.duplicate")}>
                       <Copy className="h-4 w-4" />
                     </Button>
 
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingTemplate(tpl)} title={tpl.isSystem ? "Editar (creará una copia)" : "Editar"}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingTemplate(tpl)} title={tpl.isSystem ? t("pages.objectLibrary.editCopy") : t("pages.objectLibrary.edit")}>
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     {!tpl.isSystem && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(tpl.id)} title="Eliminar">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(tpl.id)} title={t("pages.objectLibrary.delete")}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
@@ -160,15 +186,15 @@ export function ObjectLibrary() {
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2.5rem]">
-                  {tpl.description || "Sin descripción."}
+                  {displayDesc || t("pages.objectLibrary.noDescription")}
                 </p>
                 <div className="mt-4 flex items-center justify-between text-[10px] text-muted-foreground uppercase font-bold tracking-widest border-t pt-3">
-                  <span>Calculated V1</span>
+                  <span>{t("pages.objectLibrary.engineVersion")}</span>
                   <span>{new Date(tpl.createdAt).toLocaleDateString()}</span>
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )})}
         </div>
       </div>
     </div>

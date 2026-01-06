@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Code, Trash2, BoxSelect } from "lucide-react";
 import { evaluateExpression } from "@/utils/paramEvaluator";
+import { useTranslation } from "react-i18next";
 
 interface Vertex {
   id: string;
@@ -19,6 +20,7 @@ interface VisualGeometryEditorProps {
 }
 
 export function VisualGeometryEditor({ geometry, onChange, params }: VisualGeometryEditorProps) {
+  const { t } = useTranslation();
   const [vertices, setVertices] = useState<Vertex[]>([]);
   const [contours, setContours] = useState<any[]>([]);
   const [editMode, setEditMode] = useState<'number' | 'expression'>('number');
@@ -72,7 +74,7 @@ export function VisualGeometryEditor({ geometry, onChange, params }: VisualGeome
     setVertices(newVertices);
     setContours(newContours);
     updateGeometry(newVertices, newContours);
-    toast.success(`Perímetro "${id}" y sus ${nodesToRemove.length} nodos eliminados`);
+    toast.success(t("features.templateEditor.toastContourDeleted", { id, count: nodesToRemove.length }));
   };
 
   return (
@@ -81,7 +83,7 @@ export function VisualGeometryEditor({ geometry, onChange, params }: VisualGeome
         <div className="flex justify-between items-center">
           <CardTitle className="text-sm flex items-center gap-2">
             <BoxSelect className="h-4 w-4 text-primary" />
-            Coordenadas / Nodos
+            {t("features.templateEditor.coordsTitle")}
           </CardTitle>
           <Button
             onClick={() => setEditMode(editMode === 'number' ? 'expression' : 'number')}
@@ -90,7 +92,7 @@ export function VisualGeometryEditor({ geometry, onChange, params }: VisualGeome
             className="h-6 px-2 text-[10px] gap-1"
           >
             <Code className="h-3 w-3" />
-            {editMode === 'number' ? 'Expr' : 'Num'}
+            {editMode === 'number' ? t("features.templateEditor.modeExpr") : t("features.templateEditor.modeNum")}
           </Button>
         </div>
       </CardHeader>
@@ -105,7 +107,7 @@ export function VisualGeometryEditor({ geometry, onChange, params }: VisualGeome
                     <div className="font-bold text-xs flex items-center gap-2">
                       <span className="bg-primary/20 text-primary px-1.5 rounded">{contour.id}</span>
                       <span className="text-[10px] text-muted-foreground font-normal">
-                        {contourNodes.length} nodos · {contour.closed ? "Cerrado" : "Abierto"}
+                        {contourNodes.length} {t("features.templateEditor.nodes")} · {contour.closed ? t("features.templateEditor.closed") : t("features.templateEditor.open")}
                       </span>
                     </div>
                   </div>
@@ -180,7 +182,7 @@ export function VisualGeometryEditor({ geometry, onChange, params }: VisualGeome
           })}
           {contours.length === 0 && (
             <div className="text-center text-muted-foreground text-xs py-4">
-              No hay geometría definida
+              {t("features.templateEditor.noGeometry")}
             </div>
           )}
         </div>
