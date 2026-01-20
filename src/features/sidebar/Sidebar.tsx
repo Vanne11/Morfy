@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { LayoutDashboard, Library, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import logo from "@/assets/logo.png";
 
 export function Sidebar() {
   const { t } = useTranslation();
@@ -16,7 +17,7 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="h-screen w-16 flex flex-col items-center border-r bg-background py-4 space-y-2">
+    <aside className="h-screen w-16 flex flex-col items-center border-r bg-background py-4 space-y-4">
       <TooltipProvider delayDuration={0}>
         {links.map((link) => (
           <Tooltip key={link.to}>
@@ -39,6 +40,9 @@ export function Sidebar() {
           </Tooltip>
         ))}
       </TooltipProvider>
+      <div className="mt-auto pt-2">
+        <img src={logo} alt="Morfy Logo" className="h-10 w-10 rounded-lg object-contain" />
+      </div>
     </aside>
   );
 }
