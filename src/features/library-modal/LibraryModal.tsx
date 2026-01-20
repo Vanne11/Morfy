@@ -110,7 +110,7 @@ export function LibraryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+      <DialogContent className="max-w-4xl h-[80vh] flex flex-col" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Seleccionar Plantilla</DialogTitle>
         </DialogHeader>
