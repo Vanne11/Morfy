@@ -1053,6 +1053,13 @@ export function TemplateEditor({ template, isSystemTemplate = false, onSaved, on
                     newVertices[nodeId] = { x, y };
                     handleGeometryChange({ ...previewData.geometry, vertices: newVertices });
                   }}
+                  onNodesMove={(updates) => {
+                    const newVertices = { ...previewData.geometry.vertices };
+                    Object.entries(updates).forEach(([nodeId, pos]: [string, any]) => {
+                       newVertices[nodeId] = { x: pos.x, y: pos.y };
+                    });
+                    handleGeometryChange({ ...previewData.geometry, vertices: newVertices });
+                  }}
                   onNodeAdd={(perimeterId, afterNodeId, x, y) => {
                     const contour = previewData.geometry.contours.find((c: any) => c.id === perimeterId);
                     if (!contour) return;

@@ -24,13 +24,27 @@ export const LivePreview = forwardRef(({ data }: { data: any }, ref) => {
         Vista Previa Real-Time
       </div>
       <Canvas
-        gl={{ preserveDrawingBuffer: true }}
-        camera={{ position: [120, 120, 120], fov: 40 }}
+        gl={{ preserveDrawingBuffer: true, antialias: true }}
+        shadows
+        camera={{ position: [80, 80, 80], fov: 45 }}
       >
         <SceneCapture />
-        <ambientLight intensity={0.8} />
-        <pointLight position={[100, 100, 100]} intensity={1.5} />
-        <gridHelper args={[300, 30, "#333", "#222"]} />
+        <color attach="background" args={['#18181b']} /> {/* zinc-900 background matching UI */}
+        
+        {/* Iluminación de Estudio */}
+        <ambientLight intensity={0.4} />
+        <spotLight 
+          position={[100, 150, 50]} 
+          angle={0.4} 
+          penumbra={1} 
+          intensity={2} 
+          castShadow 
+          shadow-bias={-0.0001}
+        />
+        <pointLight position={[-100, -100, -100]} intensity={0.5} color="blue" />
+
+        <gridHelper args={[300, 30, "#333", "#222"]} position={[0, -0.1, 0]} />
+        
         <Center top>
           {data?.geometry ? (
             <SVGParametricModel
@@ -39,14 +53,23 @@ export const LivePreview = forwardRef(({ data }: { data: any }, ref) => {
               color={color}
             />
           ) : (
-            <mesh>
-              <boxGeometry args={[1, 1, 1]} />
-              <meshStandardMaterial color="#666" wireframe />
+            <mesh castShadow receiveShadow>
+              <boxGeometry args={[20, 20, 20]} />
+              <meshStandardMaterial color="#666" />
             </mesh>
           )}
         </Center>
-        <ContactShadows position={[0, -0.1, 0]} opacity={0.6} scale={300} blur={2.5} far={10} />
-        <OrbitControls makeDefault />
+        
+        <ContactShadows 
+          position={[0, -0.2, 0]} 
+          opacity={0.4} 
+          scale={200} 
+          blur={2} 
+          far={10} 
+          resolution={512} 
+          color="#000000"
+        />
+        <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2} />
       </Canvas>
     </div>
   );

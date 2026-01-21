@@ -16,6 +16,7 @@ interface FabricEditorProps {
   geometry: any;
   params: Record<string, any>;
   onNodeMove: (nodeId: string, x: number, y: number) => void;
+  onNodesMove?: (updates: Record<string, {x: number, y: number}>) => void;
   onNodeAdd: (perimeterId: string, afterNodeId: string, x: number, y: number) => void;
   onElementDelete?: (type: 'node' | 'line' | 'circle', id: string, secondaryId?: string) => void;
   onShapeCreate?: (shape: any) => void;
@@ -32,6 +33,7 @@ export function FabricGeometryEditor({
   geometry,
   params,
   onNodeMove,
+  onNodesMove,
   onNodeAdd,
   onElementDelete,
   onShapeCreate,
@@ -52,6 +54,10 @@ export function FabricGeometryEditor({
   // Estado para dibujo temporal
   const drawingPoints = useRef<Array<{x: number, y: number}>>([]);
   const tempDrawingObjects = useRef<fabric.Object[]>([]);
+  
+  // Estado para arrastre de grupo
+  const dragStartPositions = useRef<Map<string, {left: number, top: number}>>(new Map());
+  const dragStartPointer = useRef<{x: number, y: number} | null>(null);
 
   // Estado para creación interactiva de formas (Rect/Poly/Circle)
   const [creationState, setCreationState] = useState<'none' | 'rect_height' | 'rect_width' | 'poly_sides' | 'poly_dist' | 'circle_radius'>('none');
@@ -62,6 +68,8 @@ export function FabricGeometryEditor({
   // Limpiar dibujo temporal al cambiar de herramienta
   useEffect(() => {
     drawingPoints.current = [];
+    dragStartPointer.current = null;
+    dragStartPositions.current.clear();
     setCreationState('none');
     setCreationData(null);
     setInputValue("");
@@ -674,6 +682,9 @@ export function FabricGeometryEditor({
         selectable: false,
         evented: false,
       });
+      
+      // Vincular texto al círculo para acceso rápido
+      (circle as any).labelObj = text;
 
       // Hover effect para borrar
       circle.on('mouseover', () => {
@@ -700,6 +711,19 @@ export function FabricGeometryEditor({
         }
 
         if (!canSelect) return;
+        
+        // Guardar posiciones iniciales para posible arrastre de grupo
+        if (selectedNodes.includes(id)) {
+          dragStartPointer.current = { x: circle.left!, y: circle.top! };
+          dragStartPositions.current.clear();
+          selectedNodes.forEach(selectedId => {
+            const node = nodeCircles.current.get(selectedId);
+            if (node) {
+              dragStartPositions.current.set(selectedId, { left: node.left!, top: node.top! });
+            }
+          });
+        }
+
         const event = e.e as MouseEvent;
         if (event.ctrlKey || event.metaKey || activeTool.startsWith('constraint_')) {
           // Ctrl+Click O Modo Restricción: toggle selección (acumulativo)
@@ -716,63 +740,171 @@ export function FabricGeometryEditor({
           }, 10);
           return false;
         } else if (!selectedNodes.includes(id)) {
-          // Click normal en modo select: selecciona solo este nodo
+          // Click normal en modo select: selecciona solo este nodo (si no estaba seleccionado ya)
+          // Si ya estaba seleccionado, no hacemos nada para permitir el arrastre de grupo
           onSelectionChange([id], []);
+          // También preparamos el arrastre para este único nodo
+          dragStartPointer.current = { x: circle.left!, y: circle.top! };
+          dragStartPositions.current.clear();
+          dragStartPositions.current.set(id, { left: circle.left!, top: circle.top! });
         }
       });
 
-      // Evento durante el arrastre (solo visual, no actualiza estado)
+      // Evento durante el arrastre (VISUAL)
       circle.on('moving', () => {
-        // Mover la etiqueta junto al círculo
-        text.set({
-          left: circle.left! + 10,
-          top: circle.top! - 10,
-        });
+        const dx = circle.left! - (dragStartPointer.current?.x || circle.left!);
+        const dy = circle.top! - (dragStartPointer.current?.y || circle.top!);
 
-        // Actualizar líneas conectadas
-        canvas.getObjects('line').forEach((obj) => {
-          const line = obj as fabric.Line & { data?: any };
-          const data = line.data;
-          if (data?.type === 'edge') {
-            if (data.fromNode === id) {
-              line.set({ x1: circle.left, y1: circle.top });
+        // Si es parte de un grupo seleccionado, mover todos los demás
+        if (selectedNodes.includes(id) && selectedNodes.length > 1) {
+          selectedNodes.forEach(selectedId => {
+            if (selectedId === id) return; // El nodo actual ya lo mueve Fabric
+            const otherNode = nodeCircles.current.get(selectedId);
+            const startPos = dragStartPositions.current.get(selectedId);
+            if (otherNode && startPos) {
+              otherNode.set({
+                left: startPos.left + dx,
+                top: startPos.top + dy
+              });
+              otherNode.setCoords(); // Actualizar hit box
             }
-            if (data.toNode === id) {
-              line.set({ x2: circle.left, y2: circle.top });
+          });
+        }
+
+        // Actualizar visualmente TODAS las líneas y etiquetas afectadas
+        // (No solo las del nodo actual, sino todas las del grupo)
+        const nodesToUpdate = selectedNodes.includes(id) ? selectedNodes : [id];
+        
+        nodesToUpdate.forEach(updateId => {
+           const nodeObj = nodeCircles.current.get(updateId);
+           if (!nodeObj) return;
+           
+           // Mover etiqueta
+           const label = (nodeObj as any).labelObj;
+           if (label) {
+             label.set({
+               left: nodeObj.left! + 10,
+               top: nodeObj.top! - 10
+             });
+           }
+           
+           // Actualizar líneas conectadas
+           canvas.getObjects('line').forEach((obj) => {
+            const line = obj as fabric.Line & { data?: any };
+            const data = line.data;
+            if (data?.type === 'edge') {
+              if (data.fromNode === updateId) {
+                line.set({ x1: nodeObj.left, y1: nodeObj.top });
+              }
+              if (data.toNode === updateId) {
+                line.set({ x2: nodeObj.left, y2: nodeObj.top });
+              }
             }
-          }
+          });
         });
 
         canvas.renderAll();
       });
 
-      // Cuando termina el arrastre, actualizar el estado
+      // Cuando termina el arrastre, actualizar el estado (LÓGICA)
       circle.on('modified', () => {
-        const newX = fromCanvasX(circle.left!);
-        const newY = fromCanvasY(circle.top!);
+        // Calcular el desplazamiento final relativo al inicio
+        // Usamos el nodo arrastrado como referencia
+        const currentLeft = circle.left!;
+        const currentTop = circle.top!;
+        const startX = dragStartPointer.current?.x || currentLeft;
+        const startY = dragStartPointer.current?.y || currentTop;
+        
+        const deltaX = currentLeft - startX;
+        const deltaY = currentTop - startY;
 
-        // Validar movimiento con el solver de restricciones
-        const result = constraintSolver.solveNodeMove(
-          id,
-          Number(newX.toFixed(1)),
-          Number(newY.toFixed(1)),
-          evaluatedVertices,
-          constraints
-        );
+        // Si no se movió realmente, ignorar
+        if (Math.abs(deltaX) < 0.1 && Math.abs(deltaY) < 0.1) return;
 
-        if (result.blocked) {
-          // Movimiento bloqueado, revertir a posición original
-          circle.set({
-            left: toCanvasX(evaluatedVertices[id].x),
-            top: toCanvasY(evaluatedVertices[id].y)
+        // Identificar qué nodos se movieron
+        const movingNodesIds = selectedNodes.includes(id) ? selectedNodes : [id];
+        const allUpdates: Record<string, {x: number, y: number}> = {};
+        let blocked = false;
+        let blockReason = "";
+
+        // Calcular nuevas posiciones propuestas para TODOS los nodos
+        // y validar con el solver una por una (esto es una simplificación, 
+        // idealmente el solver debería validar el conjunto)
+        for (const nodeId of movingNodesIds) {
+           // Obtener posición original antes del arrastre
+           const startPos = dragStartPositions.current.get(nodeId);
+           // Si es el nodo actual, us su posición actual, si no, calculamos con delta
+           let newCanvasX, newCanvasY;
+           
+           if (nodeId === id) {
+             newCanvasX = currentLeft;
+             newCanvasY = currentTop;
+           } else if (startPos) {
+             newCanvasX = startPos.left + deltaX;
+             newCanvasY = startPos.top + deltaY;
+           } else {
+             // Fallback si no hay startPos (no debería pasar si la lógica de mousedown es correcta)
+             const v = evaluatedVertices[nodeId];
+             if (v) {
+                newCanvasX = toCanvasX(v.x) + deltaX;
+                newCanvasY = toCanvasY(v.y) + deltaY;
+             } else {
+                continue;
+             }
+           }
+
+           const newX = fromCanvasX(newCanvasX);
+           const newY = fromCanvasY(newCanvasY);
+
+           // Validar
+           const result = constraintSolver.solveNodeMove(
+            nodeId,
+            Number(newX.toFixed(1)),
+            Number(newY.toFixed(1)),
+            evaluatedVertices, 
+            constraints
+          );
+
+          if (result.blocked) {
+            blocked = true;
+            blockReason = result.reason || 'Restricción activa';
+            break;
+          }
+
+          // Acumular actualizaciones
+          allUpdates[nodeId] = { x: Number(newX.toFixed(1)), y: Number(newY.toFixed(1)) };
+          
+          // También acumular las actualizaciones secundarias del solver (propagación)
+          Object.entries(result.updates).forEach(([updId, pos]) => {
+             allUpdates[updId] = pos;
+          });
+        }
+
+        if (blocked) {
+          // Revertir visualmente TODO el grupo
+          movingNodesIds.forEach(nodeId => {
+             const nodeObj = nodeCircles.current.get(nodeId);
+             const v = evaluatedVertices[nodeId];
+             if (nodeObj && v) {
+               nodeObj.set({
+                 left: toCanvasX(v.x),
+                 top: toCanvasY(v.y)
+               });
+               nodeObj.setCoords();
+             }
           });
           canvas.renderAll();
-          toast.error(result.reason || 'Movimiento bloqueado por restricción');
+          toast.error(blockReason);
         } else {
-          // Aplicar el movimiento y las propagaciones
-          Object.entries(result.updates).forEach(([nodeId, pos]) => {
-            onNodeMove(nodeId, Number(pos.x.toFixed(1)), Number(pos.y.toFixed(1)));
-          });
+          // Aplicar todas las actualizaciones juntas
+          if (onNodesMove && Object.keys(allUpdates).length > 0) {
+            onNodesMove(allUpdates);
+          } else {
+            // Fallback (no recomendado para grupos, pero por compatibilidad)
+            Object.entries(allUpdates).forEach(([nodeId, pos]) => {
+              onNodeMove(nodeId, pos.x, pos.y);
+            });
+          }
         }
       });
 

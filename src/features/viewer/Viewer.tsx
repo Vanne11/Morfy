@@ -17,6 +17,7 @@ import { Loader2, Banana as BananaIcon, Ruler as RulerIcon, Trash2, Download } f
 import type { SelectedObject } from "@/types";
 import { Banana } from "./components/Banana";
 import { SVGParametricModel } from "./components/SVGParametricModel";
+import { ProceduralSplint } from "./components/ProceduralSplint";
 import { exportToSTL } from "../export/export";
 import { useTranslation } from "react-i18next";
 
@@ -81,14 +82,31 @@ function LoadedModel({ url }: { url: string }) {
 
 function ParametricModel({ data }: { data: any }) {
   const { t } = useTranslation();
-  if (!data || !data.params || !data.geometry) {
+  
+  // Si no hay datos válidos O si estamos explícitamente en modo procedural
+  const isProcedural = data?.mode === 'procedural' || (!data?.geometry && !data?.params?.svgPath);
+
+  if (isProcedural) {
+      // Usar valores de data.params si existen (inyectados por AppLayout), o defaults
+      const params = data?.params || {};
+      
       return (
-        <group position={[0, 10, 0]}>
-            <mesh>
-                <sphereGeometry args={[10, 16, 16]} />
-                <meshBasicMaterial color="red" wireframe />
-            </mesh>
-            <Html center><span className="bg-black/80 text-white p-1 text-xs rounded">{t("features.viewer.invalidTemplate")}</span></Html>
+        <group rotation={[Math.PI/2, Math.PI, 0]}> 
+            {/* Rotamos para que quede "de pie" o alineada como una férula de brazo */}
+            <ProceduralSplint 
+                length={params.length ?? 220}
+                widthProximal={params.widthProximal ?? 85}
+                widthDistal={params.widthDistal ?? 60}
+                thickness={params.thickness ?? 3}
+                curvature={params.curvature ?? 190}
+                color={params.color ?? "#20b2aa"}
+                isFlat={!!params.isFlat} // Convertir 0/1 a boolean
+            />
+             <Html position={[0, (params.length ?? 220)/2 + 20, 0]} center>
+                <span className="bg-black/60 text-white px-2 py-1 text-xs rounded backdrop-blur-sm pointer-events-none">
+                    {t("features.viewer.proceduralMode") || "Modelo Paramétrico"}
+                </span>
+            </Html>
         </group>
       );
   }

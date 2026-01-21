@@ -79,7 +79,7 @@ export function SVGParametricModel({ geometry, params, color = '#60a5fa' }: SVGP
       >
         <meshStandardMaterial
           color={color}
-          roughness={0.5}
+          roughness={0.6}
           metalness={0.1}
         />
       </mesh>

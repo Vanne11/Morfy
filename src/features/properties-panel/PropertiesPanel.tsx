@@ -94,11 +94,22 @@ export function PropertiesPanel({ selectedObject, parametricData, onUpdateParams
 
                     return (
                     <div key={control.id} className="space-y-3">
-                        <div className="flex justify-between items-end">
-                            <Label className="text-sm font-medium">{displayLabel}</Label>
-                            <span className="text-[10px] font-mono bg-background px-1.5 py-0.5 rounded border shadow-sm">
-                                {uiValues[control.id] ?? control.default}
-                            </span>
+                        <div className="flex justify-between items-center gap-4">
+                            <Label className="text-sm font-medium flex-1 truncate" title={displayLabel}>{displayLabel}</Label>
+                            <Input 
+                                type="number" 
+                                className="w-20 h-7 text-right px-2 py-0 text-xs font-mono bg-background"
+                                value={uiValues[control.id] ?? control.default}
+                                min={control.min}
+                                max={control.max}
+                                step={control.step || 0.1}
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    if (!isNaN(val)) {
+                                        handleUIControlChange(control.id, val);
+                                    }
+                                }}
+                            />
                         </div>
                         <Slider 
                             min={control.min} 
@@ -114,13 +125,26 @@ export function PropertiesPanel({ selectedObject, parametricData, onUpdateParams
                 
                 <div className="bg-primary/5 p-3 rounded-lg border border-primary/10">
                     <h4 className="text-[10px] font-bold uppercase text-primary mb-2 tracking-widest">{t("features.propertiesPanel.technicalParams")}</h4>
-                    <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                    <div className="grid grid-cols-2 gap-3 text-[10px] font-mono">
                         {Object.entries(params)
                             .filter(([key, value]) => typeof value === 'number' && key !== 'color')
                             .map(([key, value]) => (
-                                <div key={key} className="flex flex-col">
-                                    <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
-                                    <span>{(value as number).toFixed(1)}</span>
+                                <div key={key} className="space-y-1">
+                                    <Label className="text-[10px] text-muted-foreground capitalize truncate" title={key.replace(/_/g, ' ')}>
+                                        {key.replace(/_/g, ' ')}
+                                    </Label>
+                                    <Input
+                                        type="number"
+                                        className="h-6 text-[10px] px-2 py-0 bg-background"
+                                        value={value as number}
+                                        step={0.1}
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            if (!isNaN(val) && onUpdateParams) {
+                                                onUpdateParams({ ...params, [key]: val }, uiValues);
+                                            }
+                                        }}
+                                    />
                                 </div>
                             ))
                         }
