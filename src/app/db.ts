@@ -41,12 +41,25 @@ export interface ITemplate {
   createdAt: Date;
 }
 
+// Interface for reusable 3D models in the library (STL, OBJ, etc.)
+export interface ILibraryModel {
+  id?: number;
+  name: string;
+  category: string;
+  description: string;
+  fileType: 'stl' | 'obj';
+  data: Blob;
+  thumbnail?: string; // Base64 preview image
+  createdAt: Date;
+}
+
 export class MorfyDB extends Dexie {
   workspaces!: Table<IWorkspace>;
   sourceFiles!: Table<ISourceFile>;
   operations!: Table<IOperation>;
   cases!: Table<Case>;
   templates!: Table<ITemplate>;
+  libraryModels!: Table<ILibraryModel>;
 
   constructor() {
     super('morfyDB');
@@ -56,6 +69,14 @@ export class MorfyDB extends Dexie {
       operations: '++id, workspaceId, timestamp',
       cases: 'id, status',
       templates: 'id, category'
+    });
+    this.version(2).stores({
+      workspaces: '++id, updatedAt',
+      sourceFiles: '++id, caseId',
+      operations: '++id, workspaceId, timestamp',
+      cases: 'id, status',
+      templates: 'id, category',
+      libraryModels: '++id, category, createdAt'
     });
   }
 }

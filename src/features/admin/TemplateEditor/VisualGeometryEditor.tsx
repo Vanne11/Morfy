@@ -309,12 +309,13 @@ export function VisualGeometryEditor({ geometry: _geometry, params: _params, onC
   );
 
   return (
-    <div className="h-full w-full bg-background border-t flex flex-col">
+    <div className="h-full w-full bg-background border-t flex flex-col overflow-hidden">
       <div className="h-8 bg-muted px-4 flex items-center justify-between border-b shrink-0">
          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Editor Lógico (Nodos)</span>
          <span className="text-[10px] text-muted-foreground">Añade imágenes y traza contornos</span>
       </div>
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 relative" style={{ minHeight: 0 }}>
+        <div className="absolute inset-0">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -329,6 +330,7 @@ export function VisualGeometryEditor({ geometry: _geometry, params: _params, onC
           <MiniMap className="!bg-muted" />
           <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
         </ReactFlow>
+        </div>
       </div>
     </div>
   );

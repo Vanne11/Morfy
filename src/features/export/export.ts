@@ -15,7 +15,7 @@ export function exportToSTL(
   // Buscaremos mallas que tengan 'castShadow' (nuestras piezas)
   const meshesToExport: Mesh[] = [];
   scene.traverse((child) => {
-    if ((child as Mesh).isMesh && child.name !== "Banana" && child.visible) {
+    if ((child as Mesh).isMesh && child.name !== "Banana" && !child.name.startsWith("__reference_") && child.visible) {
         // Podríamos filtrar más aquí si es necesario
         meshesToExport.push(child as Mesh);
     }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
+import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -12,6 +13,7 @@ import { CreateCaseModal } from "@/features/create-case-modal/CreateCaseModal";
 import { db } from "@/app/db";
 import type { Case } from "@/types";
 import { useTranslation } from "react-i18next";
+import { TEMPLATE_REGISTRY } from "@/features/templates/registry";
 
 export function Dashboard() {
   const { t } = useTranslation();
@@ -19,7 +21,30 @@ export function Dashboard() {
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const handleAction = async (action: "duplicate" | "archive" | "delete", caseId: string) => {
+  const handleDuplicate = async (caseId: string) => {
+    const caseItem = cases.find(c => c.id === caseId);
+    if (!caseItem) return;
+
+    try {
+      const duplicated: Case = {
+        ...caseItem,
+        id: nanoid(),
+        name: `${caseItem.name} (${t("pages.dashboard.copySuffix")})`,
+        status: "Nuevo",
+        // Deep-clone parametricModel para que no comparta referencia
+        parametricModel: caseItem.parametricModel
+          ? JSON.parse(JSON.stringify(caseItem.parametricModel))
+          : undefined,
+      };
+      await db.cases.add(duplicated);
+      toast.success(t("pages.dashboard.toastDuplicated", { name: caseItem.name }));
+    } catch (error) {
+      console.error("Error duplicating case:", error);
+      toast.error(t("pages.dashboard.toastDuplicateError"));
+    }
+  };
+
+  const handleAction = async (action: "archive" | "delete", caseId: string) => {
     const caseItem = cases.find(c => c.id === caseId);
     if (!caseItem) return;
 
@@ -34,12 +59,14 @@ export function Dashboard() {
       return;
     }
 
-    let actionText = "";
-    switch(action) {
-      case "duplicate": actionText = t("pages.dashboard.actionDuplicated"); break;
-      case "archive": actionText = t("pages.dashboard.actionArchived"); break;
+    if (action === "archive") {
+      try {
+        await db.cases.update(caseId, { status: "Completado" });
+        toast.success(t("pages.dashboard.toastArchived", { name: caseItem.name }));
+      } catch (error) {
+        console.error("Error archiving case:", error);
+      }
     }
-    toast.success(t("pages.dashboard.toastAction", { name: caseItem.name, action: actionText }));
   }
 
   return (
@@ -78,28 +105,47 @@ export function Dashboard() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => setSelectedCase(caseItem)}>{t("pages.dashboard.viewDetails")}</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAction('duplicate', caseItem.id)}>{t("pages.dashboard.duplicate")}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDuplicate(caseItem.id)}>{t("pages.dashboard.duplicate")}</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleAction('archive', caseItem.id)}>{t("pages.dashboard.archive")}</DropdownMenuItem>
                       <DropdownMenuItem className="text-destructive" onClick={() => handleAction('delete', caseItem.id)}>{t("pages.dashboard.delete")}</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent className="flex justify-between items-center">
-                 <Badge variant={caseItem.status === "Completado" ? "default" : "secondary"}>
-                  {t(`common.statuses.${caseItem.status.toLowerCase()}`)}
-                </Badge>
-                <Button asChild variant="secondary" size="sm">
-                  <Link to={`/project/${caseItem.id}`}>{t("pages.dashboard.openEditor")}</Link>
-                </Button>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant={caseItem.status === "Completado" ? "default" : "secondary"}>
+                    {t(`common.statuses.${caseItem.status.toLowerCase()}`)}
+                  </Badge>
+                  {caseItem.templateId && TEMPLATE_REGISTRY[caseItem.templateId] && (
+                    <Badge variant="outline" className="text-[9px]">
+                      {(() => { const I = TEMPLATE_REGISTRY[caseItem.templateId!].icon; return <I className="h-3 w-3 mr-1 inline" />; })()}
+                      {TEMPLATE_REGISTRY[caseItem.templateId].name}
+                    </Badge>
+                  )}
+                  {caseItem.patientMeasurements?.affectedSide && (
+                    <Badge variant="outline" className="text-[9px]">
+                      {caseItem.patientMeasurements.affectedSide === 'right'
+                        ? (t("features.createCaseModal.sideRight"))
+                        : (t("features.createCaseModal.sideLeft"))
+                      }
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex justify-end">
+                  <Button asChild variant="secondary" size="sm">
+                    <Link to={`/project/${caseItem.id}`}>{t("pages.dashboard.openEditor")}</Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
-      <CaseDetailsModal 
-        caseData={selectedCase} 
-        onOpenChange={(isOpen) => { if (!isOpen) setSelectedCase(null); }} 
+      <CaseDetailsModal
+        caseData={selectedCase}
+        onOpenChange={(isOpen) => { if (!isOpen) setSelectedCase(null); }}
+        onCaseUpdated={() => setSelectedCase(null)}
       />
       <CreateCaseModal 
         open={isCreateModalOpen} 
