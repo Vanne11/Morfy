@@ -19,6 +19,26 @@ import { PenLine, Box } from "lucide-react";
 
 type SaveStatus = "idle" | "saving" | "saved";
 
+/** Auto-genera controles UI desde params de templates custom que no los definen */
+function autoGenerateControls(params: Record<string, any>) {
+  const controls: any[] = [];
+  for (const [key, value] of Object.entries(params)) {
+    if (key === 'color' || typeof value !== 'number') continue;
+    const absVal = Math.abs(value) || 1;
+    controls.push({
+      id: key,
+      label: key,
+      clinicalLabel: key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').replace(/^\w/, (c: string) => c.toUpperCase()).trim(),
+      min: 0,
+      max: key === 'grosor' || key === 'thickness' ? 15 : Math.round(absVal * 5),
+      step: absVal >= 10 ? 1 : 0.1,
+      default: value,
+      impacts: { [key]: { operation: 'set' } },
+    });
+  }
+  return controls;
+}
+
 export function AppLayout() {
   const { projectId } = useParams<{ projectId: string }>();
   const [selectedObject, setSelectedObject] = useState<SelectedObject>(null);
@@ -115,7 +135,14 @@ export function AppLayout() {
               ui_controls: []
             });
           } else {
-            setParametricData(data);
+            // Auto-generar ui_controls si no tiene
+            const controls = data.ui_controls || autoGenerateControls(data.params || {});
+            setParametricData({
+              ...data,
+              mode: data.mode || 'svg',
+              ui_controls: controls,
+              ui_values: data.ui_values || data.params || {},
+            });
           }
         })
         .catch(err => {

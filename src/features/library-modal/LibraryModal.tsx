@@ -12,6 +12,63 @@ import { useTranslation } from "react-i18next";
 import { TEMPLATE_REGISTRY, TEMPLATE_CATEGORIES, getTemplatesByCategory } from "@/features/templates/registry";
 import { cn } from "@/lib/utils";
 import { TemplatePreview3D } from "@/features/viewer/components/TemplatePreview3D";
+import type { TemplateControl } from "@/features/templates/registry";
+
+/**
+ * Auto-genera controles UI desde los params de una custom template.
+ * Analiza el tipo y valor de cada param para crear sliders razonables.
+ */
+function generateControlsFromParams(params: Record<string, any>): TemplateControl[] {
+  const controls: TemplateControl[] = [];
+
+  for (const [key, value] of Object.entries(params)) {
+    // Skip color y strings
+    if (key === 'color' || typeof value !== 'number') continue;
+
+    const absVal = Math.abs(value) || 1;
+    let min: number, max: number, step: number;
+    let clinicalLabel: string | undefined;
+    let clinicalHint: string | undefined;
+
+    // Detectar tipo de parámetro por nombre
+    if (key === 'grosor' || key === 'thickness') {
+      min = 0.5; max = 15; step = 0.1;
+      clinicalLabel = 'Grosor / Rigidez';
+      clinicalHint = 'Controla el espesor del material y su rigidez';
+    } else if (key.toLowerCase().includes('radio') || key.toLowerCase().includes('radius')) {
+      min = 0; max = absVal * 5; step = 0.5;
+      clinicalLabel = `Radio (${key})`;
+    } else if (key.toLowerCase().includes('angle') || key.toLowerCase().includes('angulo')) {
+      min = 0; max = 360; step = 1;
+      clinicalLabel = `Ángulo`;
+    } else {
+      // Parámetro genérico: rango basado en el valor actual
+      min = 0;
+      max = Math.round(absVal * 5);
+      step = absVal >= 10 ? 1 : 0.1;
+      // Nombre legible
+      clinicalLabel = key
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/_/g, ' ')
+        .replace(/^\w/, c => c.toUpperCase())
+        .trim();
+    }
+
+    controls.push({
+      id: key,
+      label: key,
+      clinicalLabel,
+      clinicalHint,
+      min,
+      max,
+      step,
+      default: value,
+      impacts: { [key]: { operation: 'set' } },
+    });
+  }
+
+  return controls;
+}
 
 type ItemSource = 'builtin' | 'system' | 'custom' | 'model';
 
@@ -158,16 +215,22 @@ export function LibraryModal({
         }
 
         // Aplicar como parametricModel del caso.
-        // Si tiene geometry SVG → se renderiza via SVGParametricModel (editable con sliders).
-        // Si no tiene geometry (solo params simples) → se renderiza como procedural.
         const hasGeometry = finalContent?.geometry?.vertices || finalContent?.geometry?.contours;
+        const templateParams = finalContent?.params || {};
+
+        // Auto-generar ui_controls desde los params si el template no los define
+        let controls: TemplateControl[] = finalContent?.ui_controls || [];
+        if (controls.length === 0 && Object.keys(templateParams).length > 0) {
+          controls = generateControlsFromParams(templateParams);
+        }
+
         await db.cases.update(projectId, {
           parametricModel: {
             mode: hasGeometry ? 'svg' : 'procedural',
             geometry: finalContent?.geometry,
-            params: finalContent?.params || {},
-            ui_controls: finalContent?.ui_controls || [],
-            ui_values: finalContent?.ui_values || finalContent?.params || {},
+            params: { ...templateParams },
+            ui_controls: controls,
+            ui_values: { ...templateParams },
           }
         });
         toast.success(t("features.libraryModal.toastApplied", { name: selectedObject.name }));
